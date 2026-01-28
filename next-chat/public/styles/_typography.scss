@@ -1,0 +1,32 @@
+@mixin typography() {
+    html {
+        box-sizing: border-box;
+        font: 14px 'Poppins', sans-serif;
+    }
+
+    body {
+        margin: 0;
+        background: linear-gradient(#121214, #272629);
+        color: #d0cfd6;
+        min-height: 100vh;
+    }
+
+    img {
+        display: block;
+        width: 100%;
+        height: auto;
+    }
+
+    h1 {
+        font-size: 2rem;
+        text-align: center;
+    }
+
+    ul {
+        list-style: none;
+    }
+
+    a {
+        text-decoration: none;
+    }
+}
