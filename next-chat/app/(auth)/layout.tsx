@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
 
-import "../globals.scss";
+import "../globals.css";
 
 import Providers from "@/components/providers.tsx";
 import { logout } from "@/actions/auth.ts";
@@ -44,12 +44,12 @@ const AuthRootLayout = async ({
   }
 
   return (
-    <html lang="en">
+    <html lang="en" theme-data="dark">
       <body>
-        <header id="auth-header">
+        <header id="auth-header" className="auth-header">
           <p>Welcome back!</p>
           <form action={logout}>
-            <button type='submit'>Logout</button>
+            <button type='submit' className="logout-btn">Logout</button>
           </form>
         </header>
         <Providers authStateInit={authStateInit}>

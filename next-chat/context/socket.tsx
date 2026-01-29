@@ -4,11 +4,16 @@ import { socket } from "@/socket.ts";
 
 import { Dispatch, SetStateAction, createContext, useState } from "react";
 
+interface Message {
+    id: string,
+    content: string
+}
+
 interface SocketStateInterface {
     isConnected: boolean,
     setIsConnected: Dispatch<SetStateAction<boolean>>,
-    messages: Array<string>,
-    setMessages: Dispatch<SetStateAction<string[]>>
+    messages: Array<Message>,
+    setMessages: Dispatch<SetStateAction<Message[]>>
 }
 
 const socketStateInterfaceInit: SocketStateInterface = {
@@ -22,7 +27,7 @@ const SocketStateContext = createContext<SocketStateInterface>(socketStateInterf
 
 function SocketStateContextProvider({ children }: { children: React.ReactNode }): React.ReactElement {
     const [isConnected, setIsConnected] = useState<boolean>(socket.connected);
-    const [messages, setMessages] = useState<string[]>([]);
+    const [messages, setMessages] = useState<Message[]>([]);
 
     return (
         <SocketStateContext.Provider value={{ isConnected, setIsConnected, messages, setMessages }}>
@@ -34,5 +39,6 @@ function SocketStateContextProvider({ children }: { children: React.ReactNode })
 export default SocketStateContextProvider;
 
 export {
-    SocketStateContext
+    SocketStateContext,
+    type Message
 }

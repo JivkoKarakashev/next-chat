@@ -11,22 +11,26 @@
   },
   "dependencies": {
     "bcrypt": "^6.0.0",
-    "next": "16.1.4",
+    "next": "^16.1.6",
     "pg": "^8.17.2",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "socket.io-client": "^4.8.3"
   },
   "devDependencies": {
+    "@tailwindcss/postcss": "^4.1.18",
     "@types/node": "^20",
     "@types/pg": "^8.16.0",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "daisyui": "^5.5.14",
     "eslint": "^9",
     "eslint-config-next": "16.1.4",
-    "sass": "^1.97.3",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^4.1.18",
     "ts-node": "^10.9.2",
     "typescript": "^5"
   },
-  "type": "module"
+  "type": "module",
+  "browserslist": "> 1%"
 }

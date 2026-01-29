@@ -5,7 +5,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 
 import authIcon from '@/public/images/auth-icon.jpg';
-import styles from './auth-form.module.scss';
+import styles from './auth-form.module.css';
 
 import { auth } from '@/actions/auth.ts';
 import { formStateInit } from '@/types/form-state.ts';

@@ -1,7 +1,7 @@
-@mixin typography() {
+@layer base {
     html {
         box-sizing: border-box;
-        font: 14px 'Poppins', sans-serif;
+        font: 14px "Poppins", sans-serif;
     }
 
     body {

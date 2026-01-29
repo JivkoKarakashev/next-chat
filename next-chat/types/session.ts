@@ -6,7 +6,7 @@ interface Session {
 }
 
 // const SESSION_TTL = 1000 * 15 * 60; // 15 min
-const SESSION_TTL = 1000 * 1 * 60; // 1 min
+const SESSION_TTL = 1000 * 30 * 60; // 1 min
 
 export {
 	type Session,

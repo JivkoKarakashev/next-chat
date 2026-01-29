@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
 
-import "../globals.scss";
+import "../globals.css";
 
 import Providers from "@/components/providers.tsx";
 import { AuthState } from "@/types/auth-state.ts";
@@ -43,7 +43,7 @@ export default async function RootLayout({
   }
 
   return (
-    <html lang="en">
+    <html lang="en" theme-data="dark">
       <body>
         <Providers authStateInit={authStateInit}>
           {children}

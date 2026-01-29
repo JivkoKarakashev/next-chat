@@ -1,10 +1,10 @@
-@mixin reset() {
+@layer base {
     * {
         padding: 0;
         margin: 0;
     }
 
-    *, *::before,*::after {
+    *, *::before, *::after {
         box-sizing: inherit;
     }
 }
