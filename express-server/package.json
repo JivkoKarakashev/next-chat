@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "npx ts-node ./src/app.ts",
     "build": "npx tsc",
-    "clean": "rd /s /q dist"
+    "clean": "rd /s /q dist",
+    "lint": "eslint ."
   },
   "keywords": [],
   "author": "",
@@ -18,11 +19,16 @@
     "ws": "^8.19.0"
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.2",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
     "@types/node": "^25.0.10",
     "@types/ws": "^8.18.1",
+    "eslint": "^9.39.2",
+    "eslint-plugin-import": "^2.32.0",
+    "eslint-plugin-node": "^11.1.0",
     "ts-node": "^10.9.2",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.54.0"
   }
 }

@@ -1,7 +1,8 @@
-import { Message } from "@/context/socket.tsx";
 import Image from "next/image";
 
-const MyMessage = ({ message }: { message: Message }): React.ReactElement => {
+import { ChatType, SystemType } from "@/types/ws-types.ts";
+
+const MyMessage = ({ msg }: { msg: SystemType | ChatType }): React.ReactElement => {
 
   return (
     <>
@@ -20,7 +21,7 @@ const MyMessage = ({ message }: { message: Message }): React.ReactElement => {
           Obi-Wan Kenobi
           <time className="text-xs opacity-50">12:45</time>
         </div>
-        <div className="chat-bubble">{message.content}</div>
+        <div className="chat-bubble">{msg.message.content}</div>
         <div className="chat-footer opacity-50">Delivered</div>
       </div>
     </>

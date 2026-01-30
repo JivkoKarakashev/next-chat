@@ -10,10 +10,11 @@ import { queryParamsDefault } from "@/types/home-page-params.ts";
 import styles from './page.module.css';
 import MyMessage from "@/components/chat/my-message.tsx";
 import TheirMessage from "@/components/chat/their-message.tsx";
+import { ChatType } from "@/types/ws-types.ts";
 
 const ChatPage = () => {
     const { isAuth } = useContext(AuthStateContext);
-    const { messages, setMessages } = useContext(SocketStateContext);
+    const { messages, send } = useContext(SocketStateContext);
     const txtAreaRef = useRef<HTMLTextAreaElement>(null);
     const formRef = useRef<HTMLFormElement>(null);
 
@@ -27,9 +28,15 @@ const ChatPage = () => {
         if (!content) {
             return;
         }
-        const message = { id: crypto.randomUUID(), content };
+        const message: ChatType = {
+            type: 'chat',
+            message: {
+                id: crypto.randomUUID(),
+                content
+            }
+        }
         // console.log(message);
-        setMessages([...messages, message]);
+        send(message);
         formRef.current?.reset();
     };
 
@@ -59,8 +66,8 @@ const ChatPage = () => {
                     <article className={styles['message-list']}>
                         {messages.length > 0 && (
                             messages.map((msg, i) => i % 2 === 0
-                                ? <MyMessage key={msg.id} message={msg} />
-                                : <TheirMessage key={msg.id} message={msg} />
+                                ? <MyMessage key={msg.message.id} msg={msg} />
+                                : <TheirMessage key={msg.message.id} msg={msg} />
                             )
                         )}
                     </article>

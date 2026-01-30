@@ -1,36 +1,50 @@
 'use client';
 
-import { socket } from "@/socket.ts";
+import { createContext, useEffect, useRef, useState } from "react";
 
-import { Dispatch, SetStateAction, createContext, useState } from "react";
-
-interface Message {
-    id: string,
-    content: string
-}
+import { createWebSocket } from "@/lib/socket.ts";
+import { ChatType, MessageType, SystemType } from "@/types/ws-types.ts";
 
 interface SocketStateInterface {
-    isConnected: boolean,
-    setIsConnected: Dispatch<SetStateAction<boolean>>,
-    messages: Array<Message>,
-    setMessages: Dispatch<SetStateAction<Message[]>>
+    connected: boolean,
+    messages: Array<SystemType | ChatType>,
+    send: (msg: SystemType | ChatType) => void
 }
 
 const socketStateInterfaceInit: SocketStateInterface = {
-    isConnected: false,
-    setIsConnected: () => { },
+    connected: false,
     messages: [],
-    setMessages: () => { }
+    send: () => { }
 };
 
 const SocketStateContext = createContext<SocketStateInterface>(socketStateInterfaceInit);
 
 function SocketStateContextProvider({ children }: { children: React.ReactNode }): React.ReactElement {
-    const [isConnected, setIsConnected] = useState<boolean>(socket.connected);
-    const [messages, setMessages] = useState<Message[]>([]);
+    const socketRef = useRef<WebSocket | null>(null);
+    const [connected, setConnected] = useState<boolean>(false);
+    const [messages, setMessages] = useState<(SystemType | ChatType)[]>([]);
+
+    const send = (msg: MessageType) => {
+        socketRef.current?.send(JSON.stringify(msg));
+    }
+
+    useEffect(() => {
+        const ws = createWebSocket();
+        socketRef.current = ws;
+
+        ws.onopen = () => setConnected(true);
+        ws.onclose = () => setConnected(false);
+
+        ws.onmessage = (event) => {
+            const msg = JSON.parse(event.data) as ChatType | SystemType;
+            setMessages((prev) => [...prev, msg]);
+        }
+
+        return () => ws.close()
+    }, []);
 
     return (
-        <SocketStateContext.Provider value={{ isConnected, setIsConnected, messages, setMessages }}>
+        <SocketStateContext.Provider value={{ connected, messages, send }}>
             {children}
         </SocketStateContext.Provider>
     );
@@ -39,6 +53,5 @@ function SocketStateContextProvider({ children }: { children: React.ReactNode })
 export default SocketStateContextProvider;
 
 export {
-    SocketStateContext,
-    type Message
+    SocketStateContext
 }

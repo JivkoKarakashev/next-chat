@@ -3,7 +3,7 @@ import { Request, Response, NextFunction } from "express";
 import { CustomError } from "../types/customError";
 import { boundErrorResponse } from "./buildResponse";
 
-const errorHandler = (err: Error | CustomError, req: Request, res: Response, next: NextFunction) => {
+const errorHandler = (err: Error | CustomError, req: Request, res: Response, _next: NextFunction) => {
     // console.log(err);
     if (err instanceof CustomError) {
         return res.status(err.statusCode).json(boundErrorResponse(err));
