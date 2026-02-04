@@ -1,16 +1,13 @@
-'use client';
-
 import AuthStateContextProvider from "@/context/auth.tsx";
 import SocketStateContextProvider from "@/context/socket.tsx";
-import { AuthState } from "@/types/auth-state.ts";
 
-function Providers({ children, authStateInit }: { children: React.ReactNode, authStateInit: AuthState }): React.ReactElement {
+function Providers({ children }: { children: React.ReactNode }): React.ReactElement {
     return (
-        <SocketStateContextProvider>
-            <AuthStateContextProvider authStateInit={authStateInit}>
+        <AuthStateContextProvider>
+            <SocketStateContextProvider>
                 {children}
-            </AuthStateContextProvider>
-        </SocketStateContextProvider>
+            </SocketStateContextProvider>
+        </AuthStateContextProvider>
     );
 }
 

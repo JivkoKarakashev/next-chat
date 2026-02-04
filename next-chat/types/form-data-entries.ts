@@ -1,8 +1,8 @@
 interface FormDataEntries {
-    email: string,
-    password: string
+  email: string,
+  password: string
 }
 
 export {
-    type FormDataEntries
+  type FormDataEntries
 }

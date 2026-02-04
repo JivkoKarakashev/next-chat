@@ -1,80 +1,77 @@
 'use server';
 
-import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { DatabaseError } from "pg";
 
 import { FormDataEntries } from "@/types/form-data-entries.ts";
-import { FormState } from "@/types/form-state.ts";
-import { formValidator } from "@/utils/form-validator.ts";
 import { createUser, getUserByEmail } from "@/lib/users.ts";
 import { RegisterUser } from "@/types/user.ts";
 import { hashPassword, verifyPassword } from "@/utils/hash.ts";
 import { createSession, deleteSession } from "@/lib/sessions.ts";
 import { createSessionCookieOptions } from "@/utils/cookie-options.ts";
-import { AuthMode, queryParamsDefault } from "@/types/home-page-params.ts";
+import { AuthMode } from "@/types/query-params.ts";
+import { generateSecureRandomString as generateUserId } from "@/utils/secure-random-string.ts";
 
-const register = async (authmode: AuthMode, _prevState: FormState, formData: FormData): Promise<FormState> => {
-    const { email, password } = Object.fromEntries(formData) as unknown as FormDataEntries;
-    // console.log(email, password);
-    let formState = formValidator(authmode, email.trim(), password.trim());
-    if (formState.valid === false) {
-        return formState;
-    }
+interface DBError {
+    error: 'DB_ERROR',
+    code?: string,
+    constraint: string
+}
 
-    const hash = await hashPassword(formState.password.value);
+interface SuccessAuth {
+    uId: string,
+    sId: string
+}
 
-    const regUser: RegisterUser = {
-        email: formState.email.value,
-        hash,
-        created_at: new Date()
-    };
+type AuthResult = SuccessAuth | DBError | undefined;
+
+const register = async (formData: FormDataEntries): Promise<AuthResult> => {
+    const { email, password } = formData;
+    const hash = await hashPassword(password);
+    const id = generateUserId();
+    const created_at = new Date();
+
+    const regUser: RegisterUser = { id, email, hash, created_at };
 
     try {
         const user_id = await createUser(regUser);
-        const { id, expires_at } = await createSession(user_id);
+        const session = await createSession(user_id);
         const cookieStore = await cookies();
-        const sessionCookieOptions = createSessionCookieOptions(expires_at);
-        cookieStore.set('session', id, sessionCookieOptions);
-        redirect('/chat');
+        const sessionCookieOptions = createSessionCookieOptions(session.expires_at);
+        cookieStore.set('session', session.id, sessionCookieOptions);
+        return { uId: user_id, sId: session.id };
     } catch (error) {
         if (error instanceof DatabaseError) {
             const { code, constraint } = error;
-            // console.log(`Code: ${code}`);
-            if (code === '23505') {
-                return formState = {
-                    ...formState,
-                    valid: false,
-                    email: {
-                        ...formState.email,
-                        valid: false,
-                        error: constraint === 'users_email_key'
-                            ? 'An account with the same email already exists!'
-                            : 'Duplicate email address!'
-                    }
+            if (code === '23505' && constraint) {
+                return {
+                    error: 'DB_ERROR',
+                    code,
+                    constraint
                 };
             }
         }
-        throw error;
+        return undefined;
     }
 };
 
-const login = async (authmode: AuthMode, _prevState: FormState, formData: FormData): Promise<FormState> => {
-    const { email, password } = Object.fromEntries(formData) as unknown as FormDataEntries;
+const login = async (formData: FormDataEntries): Promise<AuthResult> => {
+    const { email, password } = formData;
     const authUser = await getUserByEmail(email);
-    const isValidPass = await verifyPassword(password.trim(), authUser?.password ?? '');
-    const passArg = isValidPass ? authUser?.password ?? '' : '';
-    const formState = formValidator(authmode, authUser?.email ?? '', passArg);
+    const isValidPass = await verifyPassword(password, authUser?.password ?? '');
 
-    if (!formState.valid || !authUser || !isValidPass) {
-        return formState;
+    if (!authUser || !isValidPass) {
+        return {
+            error: 'DB_ERROR',
+            constraint: 'Incorrect credentials!',
+        }
     }
 
-    const { id, expires_at } = await createSession(authUser.id);
+    const session = await createSession(authUser.id);
     const cookieStore = await cookies();
-    const sessionCookieOptions = createSessionCookieOptions(expires_at);
-    cookieStore.set('session', id, sessionCookieOptions);
-    redirect('/chat');
+    const sessionCookieOptions = createSessionCookieOptions(session.expires_at);
+    cookieStore.set('session', session.id, sessionCookieOptions);
+    return { uId: authUser.id, sId: session.id };
 };
 
 const logout = async (): Promise<void> => {
@@ -85,19 +82,17 @@ const logout = async (): Promise<void> => {
         await deleteSession(sessionId);
     }
     cookieStore.delete('session');
-    redirect(`/${queryParamsDefault}`);
 };
 
-async function auth(authmode: AuthMode, prevState: FormState, formData: FormData) {
+async function auth(authmode: AuthMode, formData: FormDataEntries) {
     // console.log(`Auth mode:${authmode}`);
     switch (authmode) {
         case 'login': {
-            return login(authmode, prevState, formData);
+            return login(formData);
         }
         case 'register': {
-            return register(authmode, prevState, formData);
+            return register(formData);
         }
-        default: return prevState;
     }
 }
 

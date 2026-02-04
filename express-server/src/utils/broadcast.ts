@@ -1,17 +1,28 @@
-import { wss } from "../app";
-import { MessageType } from "../types/ws-types";
+import { WebSocket as WSRuntime } from 'ws';
 
-// Broadcast to everyone
+import { WS, ChatMessage, ChatType, HistoryType } from "../ws/types";
+import { getSocketsByChannel } from "../ws/connectionStore";
 
-function broadcast(message: MessageType) {
-    const data = JSON.stringify(message)
-    wss.clients.forEach((client) => {
-        if (client.readyState === WebSocket.OPEN) {
-            client.send(data)
+// --- Broadcast helpers ---
+const sendMessageByChannel = (channelId: string, message: ChatType): void => {
+    const clients = getSocketsByChannel(channelId);
+    const data = JSON.stringify(message);
+    clients.forEach((client: WS) => {
+        if (client.readyState === WSRuntime.OPEN) {
+            client.send(data);
         }
-    })
-}
+    });
+};
+
+const sendChatHistoryToClient = (ws: WS, history: ChatMessage[]): void => {
+    const historyMsg: HistoryType = {
+        type: "history",
+        messages: history
+    };
+    ws.send(JSON.stringify(historyMsg));
+};
 
 export {
-    broadcast
+    sendMessageByChannel,
+    sendChatHistoryToClient
 }

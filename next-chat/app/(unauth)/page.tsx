@@ -1,17 +1,29 @@
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 
-import { AuthMode, queryParamsDefault } from "@/types/home-page-params.ts";
+import { AuthMode, queryParamsDefault } from "@/types/query-params.ts";
 import AuthForm from "@/components/auth-form/auth-form.tsx";
+import { validateSession } from "@/lib/sessions.ts";
 
-export default async function Home(props: PageProps<'/'>): Promise<React.ReactElement> {
-  const { searchParams } = props;
-  const query = await searchParams;
-  const hasMode = 'authmode' in query ? 'authmode' : redirect(`/${queryParamsDefault}`);
-  const authmode: AuthMode = query[hasMode] as AuthMode;
-  const cookie = (await cookies()).get('session');
-  if (cookie) {
-    redirect('/chat');
+interface KnownSearchParams {
+  authmode?: AuthMode
+};
+
+type SearchParams = Promise<KnownSearchParams & { [key: string]: string | string[] | undefined }>;
+
+const Home = async ({ searchParams }: { searchParams: SearchParams }): Promise<React.ReactElement> => {
+  const { authmode } = await searchParams;
+  if (!authmode) {
+    redirect(`/${queryParamsDefault}`);
+  }
+
+  const cookieStore = await cookies();
+  const sId = cookieStore.get('session')?.value;
+  if (sId) {
+    const session = await validateSession(sId);
+    if (session) {
+      redirect('/chat');
+    }
   }
 
   return (
@@ -21,4 +33,6 @@ export default async function Home(props: PageProps<'/'>): Promise<React.ReactEl
       </main>
     </div>
   );
-}
+};
+
+export default Home;

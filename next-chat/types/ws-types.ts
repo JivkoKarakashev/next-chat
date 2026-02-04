@@ -1,36 +1,59 @@
-type MType = 'join' | 'chat' | 'system';
+type MType = | 'join' | 'chat' | 'system' | 'history' | 'edit' | 'presence';
+
+type EventType = | 'join' | 'leave' | 'online' | 'offline';
 
 interface BaseType {
-    type: MType
+  type: MType
 }
 
-interface WSMessage {
-    id: string,
-    content: string
+interface ChatMessage {
+  id?: string,
+  userId?: string,
+  channelId?: string,
+  channelName?: string,
+  email?: string,
+  content: string,
+  createdAt?: Date,
+  updatedAt?: Date | null
 }
 
-interface JoinType extends Omit<BaseType, 'type'> {
-    type: 'join',
-    username: string
+/* ---------- MESSAGE ENVELOPES ---------- */
+interface JoinType extends BaseType {
+  type: 'join',
+  channelName: string
 }
 
-interface ChatType extends Omit<BaseType, 'username' | 'type'> {
-    type: 'chat',
-    message: WSMessage
+interface ChatType extends BaseType {
+  type: 'chat',
+  message: ChatMessage
 }
 
-interface SystemType extends Omit<ChatType, 'type'> {
-    type: 'system'
-};
+interface HistoryType extends BaseType {
+  type: 'history',
+  messages: ChatMessage[]
+}
 
-type MessageType = JoinType | ChatType | SystemType;
+interface SystemType extends BaseType {
+  type: 'system',
+  message: string
+}
+
+interface PresenceType extends BaseType {
+  type: 'presence',
+  event: EventType,
+  userId: string,
+  channelId?: string
+}
+
+/* ---------- UNION ---------- */
+type MessageType = | JoinType | ChatType | HistoryType | SystemType | PresenceType;
 
 export {
-    type MType,
-    type BaseType,
-    type WSMessage,
-    type JoinType,
-    type ChatType,
-    type SystemType,
-    type MessageType
+  type MType,
+  type BaseType,
+  type ChatMessage,
+  type JoinType,
+  type ChatType,
+  type SystemType,
+  type MessageType
 }

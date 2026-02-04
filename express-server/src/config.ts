@@ -1,6 +1,9 @@
+import { env } from "./env";
+
+
 const config = {
-    env: process.env.NODE_ENV || 'development',
-    port: parseInt(process.env.LISTENING_PORT || '3030')
+    env: env.NODE_ENV,
+    port: env.LISTENING_PORT
 }
 
 export default config;

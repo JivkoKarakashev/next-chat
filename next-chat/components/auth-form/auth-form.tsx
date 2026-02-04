@@ -1,24 +1,67 @@
 'use client';
 
-import { useActionState, useState } from 'react';
+import { useContext, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 import authIcon from '@/public/images/auth-icon.jpg';
 import styles from './auth-form.module.css';
 
 import { auth } from '@/actions/auth.ts';
-import { formStateInit } from '@/types/form-state.ts';
-import { AuthMode } from '@/types/home-page-params.ts';
+import { FormState, formStateInit } from '@/types/form-state.ts';
+import { AuthMode } from '@/types/query-params.ts';
+import { AuthStateContext } from '@/context/auth.tsx';
+import { formValidator } from '@/utils/form-validator.ts';
 
 const AuthForm = ({ authmode }: { authmode: AuthMode }): React.ReactElement => {
-  // console.log(`Auth mode:${authmode}`);
-  const [formState, formAction] = useActionState(auth.bind(null, authmode), { ...formStateInit });
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  console.log(`Auth mode:${authmode}`);
+  const { isAuthSetter, uIdSetter, sIdSetter } = useContext(AuthStateContext);
+  const [email, setEmail] = useState<string>('');
+  const [password, setPassword] = useState<string>('');
+  const [formState, setFormState] = useState<FormState>(formStateInit);
+  const router = useRouter();
+
+  const formSubmitHandler = async (e: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
+    e.preventDefault();
+    const fState = formValidator(authmode, email.trim(), password.trim());
+    setFormState(fState);
+
+    if (fState.valid) {
+      const authResult = await auth.call(null, authmode, { email, password });
+      console.log(authResult);
+      const uId = 'uId';
+      const error = 'error';
+
+      if (authResult && error in authResult) {
+        const error = authResult;
+        console.log(`Code: ${error.code}`);
+        if (error.error) {
+          setFormState(prev => {
+            return {
+              ...prev,
+              valid: false,
+              email: {
+                ...prev.email,
+                valid: false,
+                error: error.code === '23505'
+                  ? 'An account with the same email already exists!'
+                  : error.constraint
+              }
+            }
+          });
+        }
+      } else if (authResult && uId in authResult) {
+        isAuthSetter(true);
+        uIdSetter(authResult.uId);
+        sIdSetter(authResult.sId);
+        router.replace('/chat');
+      }
+    }
+  };
 
   return (
-    <form id="auth-form" className={styles['auth-form']} action={formAction}>
+    <form id="auth-form" className={styles['auth-form']}>
       <div>
         <Image
           src={authIcon}
@@ -42,7 +85,7 @@ const AuthForm = ({ authmode }: { authmode: AuthMode }): React.ReactElement => {
         )}
       </p>
       <p>
-        <button type="submit">
+        <button type="button" onClick={formSubmitHandler}>
           {authmode === 'register' ? 'Create Account' : 'Login'}
         </button>
       </p>
