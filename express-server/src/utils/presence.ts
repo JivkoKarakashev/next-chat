@@ -14,21 +14,13 @@ interface PresenceEvent {
 }
 
 // Emit a presence event to all clients in a channel
-const emitPresence = ({ event, userId, username, channelName, channelId }: { event: EventType, userId: string, username: string, channelId: string, channelName: string }): void => {
-    const clients = getSocketsByChannel(channelId);
+const emitPresence = (msg: PresenceType): void => {
+    const clients = getSocketsByChannel(msg.channelId);
     const id = generateId();
-    const presMsg: PresenceType = {
-        id,
-        userId,
-        username,
-        channelId,
-        channelName,
-        type: 'presence',
-        event
-    };
+    const presenceMsg: PresenceType = { id, ...msg };
     clients.forEach((ws: WS) => {
         if (ws.readyState === WSRuntime.OPEN) {
-            ws.send(JSON.stringify(presMsg));
+            ws.send(JSON.stringify(presenceMsg));
         }
     });
 };

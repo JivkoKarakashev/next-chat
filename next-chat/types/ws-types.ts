@@ -49,7 +49,8 @@ interface SystemType extends BaseType {
 
 interface PresenceType extends BaseType {
   type: 'presence',
-  event: EventType
+  event: EventType,
+  channelId: string
 }
 
 interface CreatedChannelType {

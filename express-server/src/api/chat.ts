@@ -91,6 +91,7 @@ const insertMessage = async (args: InsertMessageArgs): Promise<DBType | undefine
 
 
 export {
+  type InsertMessageArgs,
   getAllChannels,
   getOrCreateChannelByName,
   getChatHistoryByChannel,
