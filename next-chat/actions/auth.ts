@@ -26,15 +26,17 @@ interface SuccessAuth {
 type AuthResult = SuccessAuth | DBError | undefined;
 
 const register = async (formData: FormDataEntries): Promise<AuthResult> => {
-    const { email, password } = formData;
+    const { username, email, password } = formData;
     const hash = await hashPassword(password);
     const id = generateUserId();
     const created_at = new Date();
 
-    const regUser: RegisterUser = { id, email, hash, created_at };
+    const regUser: RegisterUser = { id, username, email, hash, created_at };
+    // console.log(regUser);
 
     try {
         const user_id = await createUser(regUser);
+        // console.log(user_id);
         const session = await createSession(user_id);
         const cookieStore = await cookies();
         const sessionCookieOptions = createSessionCookieOptions(session.expires_at);
@@ -57,6 +59,7 @@ const register = async (formData: FormDataEntries): Promise<AuthResult> => {
 
 const login = async (formData: FormDataEntries): Promise<AuthResult> => {
     const { email, password } = formData;
+    // console.log({ email, password });
     const authUser = await getUserByEmail(email);
     const isValidPass = await verifyPassword(password, authUser?.password ?? '');
 

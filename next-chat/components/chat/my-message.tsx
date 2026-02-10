@@ -1,8 +1,8 @@
 import Image from "next/image";
 
-import { ChatMessage } from "@/types/ws-types.ts";
+import { ChatType } from "@/types/ws-types.ts";
 
-const MyMessage = ({ msg }: { msg: ChatMessage }): React.ReactElement => {
+const MyMessage = ({ msg }: { msg: ChatType }): React.ReactElement => {
 
   return (
     <>
@@ -19,7 +19,7 @@ const MyMessage = ({ msg }: { msg: ChatMessage }): React.ReactElement => {
         </div>
         <div className="chat-header">
           {/* Obi-Wan Kenobi */}
-          {msg.email}
+          {msg.username}
           {/* <time className="text-xs opacity-50">12:46</time> */}
           <time className="text-xs opacity-50">{msg.createdAt?.toLocaleString()}</time>
         </div>

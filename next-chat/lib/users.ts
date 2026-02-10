@@ -1,12 +1,13 @@
 import { AuthUser, RegisterUser } from '@/types/user.ts';
 import { pool } from '@/lib/db.ts';
 
-const createUser = async ({ id, email, hash, created_at }: RegisterUser): Promise<string> => {
+const createUser = async ({ id, username, email, hash, created_at }: RegisterUser): Promise<string> => {
+  // console.log({ id, username, email, hash, created_at });
   const { rows } = await pool.query<{ id: string }>(`
-    INSERT INTO users (id, email, password, created_at)
-    VALUES ($1, $2, $3, $4)
+    INSERT INTO users (id, username, email, password, created_at)
+    VALUES ($1, $2, $3, $4, $5)
     RETURNING id
-  `, [id, email, hash, created_at]);
+  `, [id, username, email, hash, created_at]);
   return rows[0].id;
 };
 

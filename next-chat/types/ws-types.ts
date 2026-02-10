@@ -1,59 +1,83 @@
+import { Channel } from "./channel.ts";
+
 type MType = | 'join' | 'chat' | 'system' | 'history' | 'edit' | 'presence';
 
 type EventType = | 'join' | 'leave' | 'online' | 'offline';
 
-interface BaseType {
-  type: MType
+// Chat message structure stored in DB
+interface DBType {
+  id: string,
+  userId: string,
+  channelId: string,
+  type: MType,
+  content: string,
+  event: EventType | null,
+  createdAt: Date,
+  updatedAt: Date | null
 }
 
-interface ChatMessage {
+interface BaseType extends Omit<DBType, 'id' | 'channelId' | 'content' | 'createdAt' | 'updatedAt'> {
   id?: string,
-  userId?: string,
+  userId: string,
+  username?: string
   channelId?: string,
-  channelName?: string,
-  email?: string,
-  content: string,
+  channelName: string | null,
+  content?: string,
   createdAt?: Date,
   updatedAt?: Date | null
 }
 
 /* ---------- MESSAGE ENVELOPES ---------- */
 interface JoinType extends BaseType {
-  type: 'join',
-  channelName: string
+  type: 'join'
 }
 
 interface ChatType extends BaseType {
-  type: 'chat',
-  message: ChatMessage
+  type: 'chat'
 }
 
-interface HistoryType extends BaseType {
+interface HistoryType extends Omit<BaseType, 'content'> {
+  userId: 'history',
   type: 'history',
-  messages: ChatMessage[]
+  content: ChatType[]
 }
 
 interface SystemType extends BaseType {
-  type: 'system',
-  message: string
+  userId: 'system',
+  type: 'system'
 }
 
 interface PresenceType extends BaseType {
   type: 'presence',
-  event: EventType,
-  userId: string,
-  channelId?: string
+  event: EventType
+}
+
+interface CreatedChannelType {
+  userId: 'system',
+  type: 'channel_created',
+  channel: Channel
+}
+
+interface ChannelsSnapshotType {
+  userId: 'system',
+  type: 'channels_snapshot',
+  channels: Channel[]
 }
 
 /* ---------- UNION ---------- */
-type MessageType = | JoinType | ChatType | HistoryType | SystemType | PresenceType;
+type MessageType = | JoinType | ChatType | HistoryType | SystemType | PresenceType | CreatedChannelType | ChannelsSnapshotType;
 
 export {
   type MType,
+  type EventType,
+  type DBType,
   type BaseType,
-  type ChatMessage,
   type JoinType,
   type ChatType,
+  type HistoryType,
   type SystemType,
+  type PresenceType,
+  type CreatedChannelType,
+  type ChannelsSnapshotType,
   type MessageType
 }

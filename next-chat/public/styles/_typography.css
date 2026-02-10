@@ -6,7 +6,7 @@
 
     body {
         margin: 0;
-        background: linear-gradient(#121214, #272629);
+        /* background: linear-gradient(#121214, #272629); */
         color: #d0cfd6;
         min-height: 100vh;
     }

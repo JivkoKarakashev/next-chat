@@ -2,7 +2,7 @@ import { WS } from '../ws/types';
 
 export interface ClientMeta {
     userId: string,
-    email: string,
+    username: string,
     channelId: string,
     channelName: string,
 };

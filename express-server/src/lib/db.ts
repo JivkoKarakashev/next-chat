@@ -15,8 +15,8 @@ const pool: Pool = global.pgPool ??
         connectionString: env.POSTGRES_URL
     });
 
-pool.query("select 1").then(() => {
-    console.log("✅ Postgres connected");
+pool.query('select 1').then(() => {
+    console.log('Postgres connected');
 });
 
 if (env.NODE_ENV !== 'production') {

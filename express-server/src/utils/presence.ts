@@ -1,7 +1,8 @@
 import { WebSocket as WSRuntime } from 'ws';
 
-import { WS } from '../ws/types';
+import { PresenceType, WS } from '../ws/types';
 import { getSocketsByChannel } from "../ws/connectionStore";
+import { generateSecureRandomId as generateId } from './secure-random-string';
 
 type EventType = 'join' | 'leave' | 'online' | 'offline';
 
@@ -13,22 +14,21 @@ interface PresenceEvent {
 }
 
 // Emit a presence event to all clients in a channel
-const emitPresenceJoin = ({ userId, channelId }: { userId: string; channelId: string }): void => {
+const emitPresence = ({ event, userId, username, channelName, channelId }: { event: EventType, userId: string, username: string, channelId: string, channelName: string }): void => {
     const clients = getSocketsByChannel(channelId);
-    const event: PresenceEvent = { type: 'presence', event: 'join', userId, channelId };
+    const id = generateId();
+    const presMsg: PresenceType = {
+        id,
+        userId,
+        username,
+        channelId,
+        channelName,
+        type: 'presence',
+        event
+    };
     clients.forEach((ws: WS) => {
         if (ws.readyState === WSRuntime.OPEN) {
-            ws.send(JSON.stringify(event));
-        }
-    });
-};
-
-const emitPresenceLeave = ({ userId, channelId }: { userId: string; channelId: string }): void => {
-    const clients = getSocketsByChannel(channelId);
-    const event: PresenceEvent = { type: 'presence', event: 'leave', userId, channelId };
-    clients.forEach((ws: WS) => {
-        if (ws.readyState === WSRuntime.OPEN) {
-            ws.send(JSON.stringify(event));
+            ws.send(JSON.stringify(presMsg));
         }
     });
 };
@@ -53,8 +53,7 @@ const emitUserOffline = (userId: string, sockets: WS[] = []): void => {
 };
 
 export {
-    emitPresenceJoin,
-    emitPresenceLeave,
+    emitPresence,
     emitUserOnline,
     emitUserOffline
 }

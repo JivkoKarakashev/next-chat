@@ -5,12 +5,12 @@ import { WebSocketServer } from "ws";
 import * as cookies from "cookie";
 
 import config from "./config";
-import { ChatType, MessageType, SystemType, JoinType } from "./ws/types";
+import { ChatType, MessageType, SystemType, JoinType, CreatedChannelType, ChannelsSnapshotType } from "./ws/types";
 import { addChannelSocket, addUserSocket, getMetaBySocket, removeChannelSocket, removeUserSocket, switchChannelById } from "./ws/connectionStore";
-import { emitPresenceJoin, emitPresenceLeave, emitUserOnline, emitUserOffline } from "./utils/presence";
+import { emitPresence, emitUserOnline, emitUserOffline } from "./utils/presence";
 import { Session, validateSession } from "./utils/validateSession";
-import { getChatHistoryByChannel, getOrCreateChannelByName, insertMessage } from "./api/chat";
-import { sendChatHistoryToClient, sendMessageByChannel } from "./utils/broadcast";
+import { getAllChannels, getChatHistoryByChannel, getOrCreateChannelByName, insertMessage } from "./api/chat";
+import { broadcastAll, sendChatHistoryToClient, sendMessageByChannel } from "./utils/broadcast";
 
 
 // --- Express + WebSocket setup ---
@@ -20,143 +20,210 @@ const server = http.createServer(app);
 const wss = new WebSocketServer({ server, path: '/ws' });
 
 server.on('upgrade', (request, _socket, _head) => {
-    console.log('🚀 Upgrade request for:', request.url);
+  console.log('🚀 Upgrade request for:', request.url);
 });
 
-wss.on("connection", async (ws, req) => {
-    console.log("✅ New WebSocket connection!");
-    let session: Session | undefined;
-    (async () => {
-        try {
-            const cookie = cookies.parse(req.headers.cookie ?? "");
-            const sessionId = cookie.session;
-            if (!sessionId) {
-                return ws.close(1008, "No sessionId!");
-            }
+wss.on('connection', async (ws, req) => {
+  console.log('New WebSocket connection!');
+  let session: Session | undefined;
+  (async () => {
+    try {
+      const cookie = cookies.parse(req.headers.cookie ?? "");
+      const sessionId = cookie.session;
+      if (!sessionId) {
+        return ws.close(1008, 'No sessionId!');
+      }
 
-            session = await validateSession(sessionId);
-            if (!session) {
-                return ws.close(1008, "❌ Session invalid or expired!");
-            }
+      session = await validateSession(sessionId);
+      if (!session) {
+        return ws.close(1008, 'Session invalid or expired!');
+      }
 
-            const emitOnline = addUserSocket(session.userId, ws);
-            if (emitOnline) {
-                emitUserOnline(session.userId);
-            }
-            console.log("✅ User is ready.");
-            console.log("✅ Sent auth confirmation to client.");
-            ws.send(JSON.stringify({ type: 'system', message: 'authenticated' }));
-        } catch (error) {
-            console.error("🔥 Connection error:", error);
-            ws.close(1011); // Internal Error
-        }
-    })();
-    // console.log(session);
+      const emitOnline = addUserSocket(session.userId, ws);
+      if (emitOnline) {
+        emitUserOnline(session.userId);
+      }
+      console.log('User is ready.');
+      console.log('Sent auth confirmation to client.');
+      // AUTH CONFIRMATION
+      const sysMsg: SystemType = {
+        userId: 'system',
+        type: 'system',
+        event: null,
+        channelName: null,
+        content: 'authenticated'
+      };
+      ws.send(JSON.stringify(sysMsg));
 
-    ws.on("message", async (data) => {
-        let msg: MessageType;
-        if (!session) {
-            console.log("⏳ Message ignored: User not authenticated yet!");
-            return;
-        }
-        console.log('📩 MESSAGE EVENT FIRED for user:', session.email);
-        console.log('RAW:', data.toString());
-        try {
-            msg = JSON.parse(data.toString());
-        } catch {
-            console.log('Error occurred on message parse!');
-            return;
-        }
+      // SEND CHANNELS SNAPSHOT
+      const channels = await getAllChannels();
+      const chSnapMsg: ChannelsSnapshotType = {
+        userId: 'system',
+        type: 'channels_snapshot',
+        channels
+      };
+      ws.send(JSON.stringify(chSnapMsg));
+    } catch (err) {
+      console.error('Connection error:', err);
+      ws.close(1011); // Internal Error
+    }
+  })();
+  // console.log(session);
 
-        if (!msg || typeof msg.type !== "string") {
-            console.log('No message or wrong type!');
-            return;
-        }
+  ws.on('message', async (data) => {
+    let msg: MessageType;
+    if (!session) {
+      console.log('Message ignored: User not authenticated yet!');
+      return;
+    }
+    console.log('MESSAGE EVENT FIRED for user:', session.username);
+    console.log('RAW:', data.toString());
+    try {
+      msg = JSON.parse(data.toString());
+    } catch {
+      console.log('Error occurred on message parse!');
+      return;
+    }
 
-        // --- Handle join ---
-        if (msg.type === "join") {
-            if (!session) {
-                return ws.close(1008, "❌ Session invalid or expired!");
-            }
-            const joinMsg = msg as JoinType;
-            const meta = getMetaBySocket(ws);
-            // console.log(joinMsg);
-            // console.log(meta);
-            if (meta?.channelId && meta.channelName === joinMsg.channelName) {
-                const sysMsg: SystemType = { type: "system", message: "Already in this channel!" };
-                ws.send(JSON.stringify(sysMsg));
-                return;
-            }
+    if (!msg || typeof msg.type !== 'string') {
+      console.log('No message or wrong type!');
+      return;
+    }
 
-            const channel = await getOrCreateChannelByName(joinMsg.channelName);
-            if (!channel) {
-                ws.send(JSON.stringify({
-                    type: "system",
-                    message: "Failed to join channel!"
-                }));
-                return;
-            }
+    // --- Handle join ---
+    if (msg.type === 'join') {
+      if (!session) {
+        return ws.close(1008, 'Session invalid or expired!');
+      }
+      const joinMsg = msg as JoinType;
+      const meta = getMetaBySocket(ws);
+      // console.log(joinMsg);
+      // console.log(meta);
+      if (!joinMsg.channelName) {
+        ws.send(JSON.stringify({
+          type: 'system',
+          userId: 'system',
+          content: 'No channel selected!',
+          event: null,
+          channelName: null
+        }));
+        return;
+      }
+      if (meta?.channelId && meta.channelName === joinMsg.channelName) {
+        const sysMsg: SystemType = { userId: 'system', type: 'system', channelName: joinMsg.channelName, content: 'Already in this channel!', event: null };
+        ws.send(JSON.stringify(sysMsg));
+        return;
+      }
+
+      const { channel, created } = await getOrCreateChannelByName(joinMsg.channelName);
+      if (!channel) {
+        ws.send(JSON.stringify({
+          type: 'system',
+          message: 'Failed to join channel!'
+        }));
+        return;
+      }
+      if (created) {
+        const channelCreatedMsg: CreatedChannelType = {
+          userId: 'system',
+          type: 'channel_created',
+          channel
+        };
+
+        broadcastAll(JSON.stringify(channelCreatedMsg));
+      }
 
 
-            if (meta) {
-                switchChannelById(ws, channel.channelId, channel.channelName);
-            } else {
-                addChannelSocket(ws, { userId: session.userId, email: session.email, channelId: channel.channelId, channelName: channel.channelName });
-            }
-            const history = await getChatHistoryByChannel(channel.channelId) ?? [];
-            sendChatHistoryToClient(ws, history);
-            emitPresenceJoin({ userId: session.userId, channelId: channel.channelId });
-            console.log("✅ User joined channel:", channel.channelName);
-        }
+      if (meta) {
+        // EMIT LEAVE FIRST
+        emitPresence({ event: 'leave', userId: session.userId, username: session.username, channelId: meta.channelId, channelName: meta.channelName });
+        // SWITCH CHANNEL
+        switchChannelById(ws, channel.channelId, channel.channelName);
+      } else {
+        addChannelSocket(ws, { userId: session.userId, username: session.username, channelId: channel.channelId, channelName: channel.channelName });
+      }
+      const dbHistory = await getChatHistoryByChannel(channel.channelId) ?? [];
+      const chatHistory = dbHistory.map(msg => {
+        return {
+          ...msg,
+          channelName: channel.channelName
+        } as ChatType
+      });
+      sendChatHistoryToClient(ws, chatHistory, channel.channelName);
+      emitPresence({ event: 'join', userId: session.userId, username: session.username, channelId: channel.channelId, channelName: joinMsg.channelName });
+      console.log('User joined channel:', channel.channelName);
+    }
 
-        // --- Handle chat ---
-        if (msg.type === "chat") {
-            const meta = getMetaBySocket(ws);
-            console.log(meta);
-            if (!meta) {
-                ws.send(JSON.stringify({ type: "system", message: "Join a channel first!" }));
-                return;
-            }
+    // --- Handle chat ---
+    if (msg.type === 'chat') {
+      const meta = getMetaBySocket(ws);
+      // console.log(meta);
+      if (!meta) {
+        ws.send(JSON.stringify({ type: 'system', message: 'Join a channel first!' }));
+        return;
+      }
 
-            const { userId, channelId, email } = meta;
-            const chatMsg = msg as ChatType;
-            const { message } = chatMsg;
-            const { content } = message;
+      const chatMsg = msg as ChatType;
+      if (!chatMsg.content) {
+        console.log('Message with empty content not Allowed!');
+        return;
+      }
 
-            // Save to DB
-            const savedMsg = await insertMessage({ userId, channelId, content });
-            if (!savedMsg) {
-                console.log('Insert message Failed!');
-                return;
-            }
+      console.log(chatMsg);
+      // Save to DB
+      const savedMsg = await insertMessage({ userId: meta.userId, channelId: meta.channelId, type: chatMsg.type, content: chatMsg.content });
+      if (!savedMsg) {
+        console.log('Insert message Failed!');
+        return;
+      }
 
-            // Broadcast to all clients in the channel
-            sendMessageByChannel(channelId, { type: "chat", message: { ...savedMsg, email } });
-        }
-    });
+      // Broadcast to all clients in the channel
+      sendMessageByChannel(savedMsg.channelId, {
+        id: savedMsg.id,
+        type: chatMsg.type,
+        userId: savedMsg.userId,
+        username: meta.username,
+        channelId: savedMsg.channelId,
+        channelName: meta.channelName,
+        content: savedMsg.content,
+        event: null,
+        createdAt: savedMsg.createdAt,
+        updatedAt: savedMsg.updatedAt
+      });
+    }
+  });
 
-    ws.on("close", () => {
-        if (!session) {
-            return ws.close(1008, "❌ Session invalid or expired!");
-        }
-        const meta = removeChannelSocket(ws);
-        if (meta) emitPresenceLeave({ userId: session.userId, channelId: meta.channelId });
+  ws.on('close', () => {
+    if (!session) {
+      return ws.close(1008, 'Session invalid or expired!');
+    }
+    const meta = removeChannelSocket(ws);
+    if (meta) {
+      emitPresence({ event: 'leave', userId: session.userId, username: session.username, channelId: meta.channelId, channelName: meta.channelName });
+    }
 
-        const emitOffline = removeUserSocket(session.userId, ws);
-        if (emitOffline) emitUserOffline(session.userId);
-    });
+    const emitOffline = removeUserSocket(session.userId, ws);
+    if (emitOffline) {
+      emitUserOffline(session.userId);
+    }
+  });
 });
 
 app.use(express.json());
-app.get("/health", (_req, res) => res.json({ ok: true, environment: config.env }));
+app.get('/health', (_req, res) => res.json({ ok: true, environment: config.env }));
+app.get('/channels', async (_, res) => {
+  const allChannels = await getAllChannels();
+  // console.log(allChannels);
+  res.json(allChannels);
+});
 
 if (config.env === 'development') {
-    server.listen(config.port, () => {
-        console.log(`HTTP + WS server listening on port ${config.port}`);
-    });
+  server.listen(config.port, () => {
+    console.log(`HTTP + WS server listening on port ${config.port}`);
+  });
 }
 
 export {
-    app,
-    wss
+  app,
+  wss
 }
