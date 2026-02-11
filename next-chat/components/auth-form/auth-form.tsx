@@ -99,7 +99,7 @@ const AuthForm = ({ authmode }: { authmode: AuthMode }): React.ReactElement => {
             <label htmlFor="username">Username</label>
             <input type="text" name="username" id="username" value={username} onChange={e => setUsername(e.currentTarget.value)} />
             {!registerFormState.valid && registerFormState.stage === 'updated' && (
-              <span className={styles['form-error']}>{registerFormState.email.error}</span>
+              <span className={styles['form-error']}>{registerFormState.username.error}</span>
             )}
           </p>
           <p>
