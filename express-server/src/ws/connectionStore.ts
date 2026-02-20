@@ -1,11 +1,11 @@
-import { WS } from '../ws/types';
+import { WS } from '../ws/ws-server-types';
 
-export interface ClientMeta {
-    userId: string,
-    username: string,
-    channelId: string,
-    channelName: string,
-};
+interface ClientMeta {
+  userId: string,
+  username: string,
+  channelId: string,
+  channelName: string,
+}
 
 // Store sockets by user
 const userSockets = new Map<string, Set<WS>>();
@@ -16,72 +16,121 @@ const channelSockets = new Map<string, Set<WS>>();
 // Store metadata for each WebSocket
 const socketMeta = new Map<WS, ClientMeta>();
 
+// Store active channel by user
+const userActiveChannel = new Map<string, string | null>();
+
 // --- User socket management ---
-export const addUserSocket = (userId: string, ws: WS): boolean => {
-    if (!userSockets.has(userId)) {
-        userSockets.set(userId, new Set());
-    }
-    const set = userSockets.get(userId)!;
-    set.add(ws);
-    // Return true if first socket for this user (user came online)
-    return set.size === 1;
+const addUserSocket = (userId: string, ws: WS): boolean => {
+  if (!userSockets.has(userId)) {
+    userSockets.set(userId, new Set());
+  }
+  const sockets = userSockets.get(userId)!;
+  sockets.add(ws);
+  // Return true if first socket for this user (user came online)
+  return sockets.size === 1;
 };
 
-export const removeUserSocket = (userId: string, ws: WS): boolean => {
-    const set = userSockets.get(userId);
-    if (!set) {
-        return false;
-    }
-
-    set.delete(ws);
-    if (set.size === 0) {
-        userSockets.delete(userId);
-        return true; // user went offline
-    }
+const removeUserSocket = (userId: string, ws: WS): boolean => {
+  const sockets = userSockets.get(userId);
+  if (!sockets) {
     return false;
+  }
+
+  sockets.delete(ws);
+  if (sockets.size === 0) {
+    userSockets.delete(userId);
+    userActiveChannel.set(userId, null);
+    return true; // user went offline
+  }
+  return false;
 };
 
 // --- Channel socket management ---
-export const addChannelSocket = (ws: WS, meta: ClientMeta): void => {
-    const { channelId } = meta;
-    socketMeta.set(ws, meta);
+const addChannelSocket = (ws: WS, meta: ClientMeta): void => {
+  const { channelId } = meta;
+  socketMeta.set(ws, meta);
 
-    if (!channelSockets.has(channelId)) {
-        channelSockets.set(channelId, new Set());
-    }
-    channelSockets.get(channelId)?.add(ws);
+  if (!channelSockets.has(channelId)) {
+    channelSockets.set(channelId, new Set());
+  }
+  channelSockets.get(channelId)?.add(ws);
 };
 
-export const removeChannelSocket = (ws: WS): ClientMeta | undefined => {
-    const meta = socketMeta.get(ws);
-    if (!meta) {
-        return;
-    }
+const removeChannelSocket = (ws: WS): ClientMeta | undefined => {
+  const meta = socketMeta.get(ws);
+  if (!meta) {
+    console.log('Missing meta!');
+    return;
+  }
 
-    const { channelId } = meta;
-    channelSockets.get(channelId)?.delete(ws);
-    if (channelSockets.get(channelId)?.size === 0) {
-        channelSockets.delete(channelId);
-    }
+  const { channelId } = meta;
+  channelSockets.get(channelId)?.delete(ws);
+  if (channelSockets.get(channelId)?.size === 0) {
+    channelSockets.delete(channelId);
+  }
 
-    socketMeta.delete(ws);
-    return meta;
+  socketMeta.delete(ws);
+  return meta;
 };
 
-export const switchChannelById = (ws: WS, newChannelId: string, newChannelName: string): void => {
-    const meta = socketMeta.get(ws);
-    if (!meta) {
-        return;
-    }
+const switchChannelById = (ws: WS, newChannelId: string, newChannelName: string): void => {
+  const meta = socketMeta.get(ws);
+  if (!meta) {
+    console.log('Missing meta!');
+    return;
+  }
 
-    removeChannelSocket(ws);
-    addChannelSocket(ws, { ...meta, channelId: newChannelId, channelName: newChannelName });
+  removeChannelSocket(ws);
+  addChannelSocket(ws, { ...meta, channelId: newChannelId, channelName: newChannelName });
 };
 
-export const getSocketsByChannel = (channelId: string): ReadonlySet<WS> => {
-    return channelSockets.get(channelId) ?? new Set();
+const getSocketsByChannel = (channelId: string): ReadonlySet<WS> => {
+  return channelSockets.get(channelId) ?? new Set();
 };
 
-export const getMetaBySocket = (ws: WS): ClientMeta | undefined => {
-    return socketMeta.get(ws);
+const getMetaBySocket = (ws: WS): ClientMeta | undefined => {
+  return socketMeta.get(ws);
 };
+
+const getSocketsByUserId = (userId: string): ReadonlySet<WS> | undefined => {
+  return userSockets.get(userId);
+};
+
+const getOnlineUserIds = (): string[] => {
+  return [...userSockets.keys()];
+};
+
+const setUserActiveChannel = (userId: string, channelId: string | null): void => {
+  userActiveChannel.set(userId, channelId);
+};
+
+const getUserActiveChannel = (userId: string): string | null => {
+  return userActiveChannel.get(userId) ?? null;
+};
+
+interface ActiveChannelsSnapshot {
+  userId: string,
+  channelId: string | null
+}
+
+const getActiveChannelsSnapshot = (): ActiveChannelsSnapshot[] => {
+  const entries = Array.from(userActiveChannel.entries());
+  return entries.map(([userId, channelId]) => ({ userId, channelId }));
+};
+
+export {
+  type ClientMeta,
+  addUserSocket,
+  removeUserSocket,
+  addChannelSocket,
+  removeChannelSocket,
+  switchChannelById,
+  getSocketsByChannel,
+  getMetaBySocket,
+  getSocketsByUserId,
+  getOnlineUserIds,
+  setUserActiveChannel,
+  getUserActiveChannel,
+  type ActiveChannelsSnapshot,
+  getActiveChannelsSnapshot
+}

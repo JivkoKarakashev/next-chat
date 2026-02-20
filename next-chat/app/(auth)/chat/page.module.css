@@ -1,4 +1,30 @@
 @layer components {
+  .page-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    min-height: 90vh;
+    background-color: #131212;
+    gap: 2rem;
+    padding: 1.5rem;
+    flex-wrap: wrap;
+
+    .main {
+      flex: 1 1 60%;
+      min-width: 600px;
+    }
+
+    .aside {
+      position: -webkit-sticky;
+      position: sticky;
+      align-self: flex-start;
+      top: 20px;
+      flex: 1 1 30%;
+      min-width: 200px;
+      max-width: 60%;
+    }
+  }
+
   .main {
     display: flex;
     flex-direction: column;
@@ -64,6 +90,7 @@
         &:active {
           background-color: #432aa3;
         }
+
         &.disabled {
           background-color: #575757;
           cursor: not-allowed;

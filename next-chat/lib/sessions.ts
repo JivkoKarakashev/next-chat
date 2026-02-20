@@ -51,7 +51,7 @@ const cleanupExpiredSessions = async (): Promise<void> => {
         sessions
         WHERE expires_at < now()
     `);
-  console.log(`Cleaned up ${rowCount ?? 0} expired sessions.`);
+  // console.log(`Cleaned up ${rowCount ?? 0} expired sessions.`);
 };
 
 export {

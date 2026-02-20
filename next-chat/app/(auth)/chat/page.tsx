@@ -1,6 +1,6 @@
 'use client';
 
-import { useContext, useRef, useState } from "react";
+import { useContext, useEffect, useMemo, useRef, useState } from "react";
 import { redirect } from "next/navigation";
 
 import styles from './page.module.css';
@@ -9,46 +9,71 @@ import { AuthStateContext } from "@/context/auth.tsx";
 import { SocketStateContext } from "@/context/socket.tsx";
 import MyMessage from "@/components/chat/my-message.tsx";
 import TheirMessage from "@/components/chat/their-message.tsx";
-import { ChatType } from "@/types/ws-types.ts";
 import { queryParamsDefault } from "@/types/query-params.ts";
 import Presence from "@/components/chat/presence.tsx";
 import ChannelsTabs from "@/components/chat/channels-tabs.tsx";
 import CreateChannelModal from "@/components/chat/create-channel-modal.tsx";
+import UserPanel from "@/components/chat/user-panel.tsx";
+import { DBUserRow } from "@/types/ws-server-types.ts";
 
 const ChatPage = (): React.ReactElement => {
   const { isAuth, uId } = useContext(AuthStateContext);
-  const { channels, activeChannel, messages, joinChannel, send } = useContext(SocketStateContext);
+  const [allUsers, setAllUsers] = useState<DBUserRow[]>([]);
+  const { connected, onlineUsers } = useContext(SocketStateContext);
+  const { channels, usersActiveChannel, activeChannelId, memoizedMessagesByChannel, joinChannel, sendChat } = useContext(SocketStateContext);
   const txtAreaRef = useRef<HTMLTextAreaElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
+  const lastSeenRef = useRef<string | null>(null);
   const [showModal, setShowModal] = useState(false);
 
   if (!isAuth || !uId) {
     redirect(`/${queryParamsDefault}`);
   }
 
+  useEffect(() => {
+    fetch('/api/users')
+      .then(res => {
+        if (!res.ok) {
+          throw new Error('Faied to fetch all users!');
+        }
+        return (res.json()) as unknown as DBUserRow[];
+      })
+      .then(setAllUsers)
+      .catch(console.error);
+  }, []);
+
+  useEffect(() => {
+    lastSeenRef.current = null;
+  }, [activeChannelId]);
+
+  const channelMap = useMemo(() => {
+    const map: Record<string, string> = {};
+
+    channels.forEach(({ channelId, channelName }) => {
+      map[channelId] = channelName;
+    });
+
+    return map;
+  }, [channels]);
+
+
   const switchModal = () => setShowModal(!showModal);
 
   const sendMessage = (formData: FormData) => {
     // console.log(formData);
     const content = String(formData.get('content')).trim();
+    // console.log(content);
     if (!content) {
       throw new Error('Empty message!');
     }
     if (!uId) {
       throw new Error('uid is missing');
     }
-    if (!activeChannel) {
+    if (!activeChannelId) {
       throw new Error('ActiveChannel is null!');
     }
-    const msg: ChatType = {
-      type: 'chat',
-      event: null,
-      userId: uId,
-      channelName: activeChannel,
-      content
-    }
-    // console.log(msg);
-    send(msg);
+
+    sendChat(content);
     formRef.current?.reset();
   };
 
@@ -66,8 +91,8 @@ const ChatPage = (): React.ReactElement => {
   };
 
   return (
-    <>
-      <main className={styles.main}>
+    <div className={styles['page-wrapper']}>
+      <main className={`${styles.main} ${styles.col} ${styles.main}`}>
         <section className={styles.title}>
           <h1>Chat Page</h1>
         </section>
@@ -96,17 +121,27 @@ const ChatPage = (): React.ReactElement => {
 
         <section className={styles.messages}>
           <article className={styles['message-list']}>
-            {activeChannel ? (messages.length > 0 ? (
-              messages.map((msg) => {
+            {activeChannelId ? (memoizedMessagesByChannel.length > 0 ? (
+              memoizedMessagesByChannel.map((msg, idx) => {
                 switch (msg.type) {
                   case 'chat': {
                     return msg.userId === uId
-                      ? <MyMessage key={msg.id} msg={msg} />
+                      ? <MyMessage key={msg.id} msg={msg} currentUserId={uId} />
                       : <TheirMessage key={msg.id} msg={msg} />;
                   }
                   case 'presence': {
                     return (
-                      <Presence key={msg.id} event={msg.event} username={msg.username} />
+                      <Presence key={`presence-${idx}-${msg.channelId}`}
+                        event={msg.event}
+                        username={msg.username}
+                      />
+                    );
+                  }
+                  case 'system': {
+                    return (
+                      <div key={`system-${idx}`} className="text-center text-sm opacity-60">
+                        {msg.content}
+                      </div>
                     );
                   }
                 }
@@ -136,7 +171,7 @@ const ChatPage = (): React.ReactElement => {
             placeholder="--Enter your message HERE--"
             onInput={resize}
           />
-          <button className={`${styles["send-msg-btn"]} ${!activeChannel ? styles.disabled : ''}`} type="submit" disabled={!activeChannel}>Send</button>
+          <button className={`${styles["send-msg-btn"]} ${!activeChannelId ? styles.disabled : ''}`} type="submit" disabled={!activeChannelId}>Send</button>
         </form>
         {showModal === true && (
           <CreateChannelModal
@@ -144,8 +179,18 @@ const ChatPage = (): React.ReactElement => {
             onSubmit={(name: string) => joinChannel(name)}
           />
         )}
-      </main>
-    </>
+
+      </main >
+      <aside className={`flex flex-col h-[80vh] w-80 bg-[#131212] border border-white/10 rounded-2xl overflow-hidden shadow-2xl ${styles.col} ${styles.aside}`}>
+        <UserPanel
+          connected={connected}
+          allUsers={allUsers}
+          onlineUsers={onlineUsers}
+          channelMap={channelMap}
+          usersActiveChannel={usersActiveChannel}
+        />
+      </aside>
+    </div>
   );
 };
 

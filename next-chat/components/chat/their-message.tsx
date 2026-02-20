@@ -1,7 +1,7 @@
-import { ChatType } from "@/types/ws-types.ts";
-import UserIcon from "./user-icon";
+import { WSChatEvent } from "@/types/ws-server-types.ts";
+import UserIcon from "./user-icon.tsx";
 
-const TheirMessage = ({ msg }: { msg: ChatType }): React.ReactElement => {
+const TheirMessage = ({ msg }: { msg: WSChatEvent }): React.ReactElement => {
 
   return (
     <>
@@ -16,7 +16,6 @@ const TheirMessage = ({ msg }: { msg: ChatType }): React.ReactElement => {
           <time className="text-xs opacity-50">{msg.createdAt?.toLocaleString()}</time>
         </div>
         <div className="chat-bubble">{msg.content}</div>
-        <div className="chat-footer opacity-50">Seen at 12:46</div>
       </div>
     </>
   );

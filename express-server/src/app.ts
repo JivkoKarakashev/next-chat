@@ -5,12 +5,16 @@ import { WebSocketServer } from "ws";
 import * as cookies from "cookie";
 
 import config from "./config";
-import { MessageType, SystemType, ChannelsSnapshotType, PresenceType } from "./ws/types";
-import { addUserSocket, removeChannelSocket, removeUserSocket } from "./ws/connectionStore";
-import { emitPresence, emitUserOnline, emitUserOffline } from "./utils/presence";
+import { WSActiveChannelsSnapshot, WSAuthEvent, WSChannelsSnapshotEvent, WSOnlineUserSnapshot, WSPresenceEvent, WSUnreadSnapshotEvent, WSUserActiveChannel, WSUserPresenceEvent } from "./ws/ws-server-types";
+import { WSClientEvent } from "./ws/ws-client-types";
+import { addUserSocket, getActiveChannelsSnapshot, getOnlineUserIds, removeChannelSocket, removeUserSocket } from "./ws/connectionStore";
+import { emitPresence } from "./utils/presence";
 import { Session, validateSession } from "./utils/validateSession";
 import { getAllChannels } from "./api/chat";
 import { messageRouter } from "./router";
+import { getUnreadCountsByUser } from "./api/message-receipts";
+import { getAllUsers } from "./api/users";
+import { broadcastAll } from "./utils/broadcast";
 
 
 // --- Express + WebSocket setup ---
@@ -26,58 +30,82 @@ server.on('upgrade', (request, _socket, _head) => {
 wss.on('connection', async (ws, req) => {
   console.log('New WebSocket connection!');
   let session: Session | undefined;
-  (async () => {
-    try {
-      const cookie = cookies.parse(req.headers.cookie ?? "");
-      const sessionId = cookie.session;
-      if (!sessionId) {
-        return ws.close(1008, 'No sessionId!');
-      }
 
-      session = await validateSession(sessionId);
-      if (!session) {
-        return ws.close(1008, 'Session invalid or expired!');
-      }
-
-      const emitOnline = addUserSocket(session.userId, ws);
-      if (emitOnline) {
-        emitUserOnline(session.userId);
-      }
-      console.log('User is ready.');
-      console.log('Sent auth confirmation to client.');
-      // AUTH CONFIRMATION
-      const sysMsg: SystemType = {
-        userId: 'system',
-        type: 'system',
-        event: null,
-        channelName: null,
-        content: 'authenticated'
-      };
-      ws.send(JSON.stringify(sysMsg));
-
-      // SEND CHANNELS SNAPSHOT
-      const channels = await getAllChannels();
-      const chSnapMsg: ChannelsSnapshotType = {
-        userId: 'system',
-        type: 'channels_snapshot',
-        channels
-      };
-      ws.send(JSON.stringify(chSnapMsg));
-    } catch (err) {
-      console.error('Connection error:', err);
-      ws.close(1011); // Internal Error
+  try {
+    const cookie = cookies.parse(req.headers.cookie ?? "");
+    const sessionId = cookie.session;
+    if (!sessionId) {
+      return ws.close(1008, 'No session!');
     }
-  })();
+
+    session = await validateSession(sessionId);
+    if (!session) {
+      return ws.close(1008, 'Invalid session!');
+    }
+
+    const bacameOnline = addUserSocket(session.userId, ws);
+    if (bacameOnline) {
+      const usrPresenceMsg: WSUserPresenceEvent = {
+        type: 'user_presence',
+        userId: session.userId,
+        online: true
+      };
+      broadcastAll(usrPresenceMsg);
+    }
+
+    console.log('User is ready.');
+    console.log('Sent auth confirmation to client.');
+    // AUTH CONFIRMATION
+    const authMsg: WSAuthEvent = {
+      type: 'auth',
+      content: 'success'
+    };
+    ws.send(JSON.stringify(authMsg));
+
+    //  ONLINE USERS SNAPSHOT
+    const onlineUsrSnapshotMsg: WSOnlineUserSnapshot = {
+      type: 'online_snapshot',
+      users: getOnlineUserIds()
+    };
+    ws.send(JSON.stringify(onlineUsrSnapshotMsg));
+
+    // UNREAD SNAPSHOT
+    const unread = await getUnreadCountsByUser(session.userId);
+    const unreadSnapshotMsg: WSUnreadSnapshotEvent = {
+      type: 'unread_snapshot',
+      unread
+    };
+    ws.send(JSON.stringify(unreadSnapshotMsg));
+
+    // SEND CHANNELS SNAPSHOT
+    const channels = await getAllChannels();
+    const chSnapshotMsg: WSChannelsSnapshotEvent = {
+      type: 'channels_snapshot',
+      channels
+    };
+    ws.send(JSON.stringify(chSnapshotMsg));
+
+    // SEND ACTIVE CHANNELS SNAPSHOT
+    const data = getActiveChannelsSnapshot();
+    const activeChSnapshotMsg: WSActiveChannelsSnapshot = {
+      type: 'active_channel_snapshot',
+      data
+    };
+    ws.send(JSON.stringify(activeChSnapshotMsg));
+  } catch (err) {
+    console.error('Connection error:', err);
+    ws.close(1011); // Internal Error
+  }
   // console.log(session);
 
   ws.on('message', async (data) => {
-    let msg: MessageType;
     if (!session) {
       console.log('Message ignored: User not authenticated yet!');
       return;
     }
     // console.log('MESSAGE EVENT FIRED for user:', session.username);
     // console.log('RAW:', data.toString());
+    let msg: WSClientEvent;
     try {
       msg = JSON.parse(data.toString());
     } catch {
@@ -90,11 +118,11 @@ wss.on('connection', async (ws, req) => {
 
   ws.on('close', () => {
     if (!session) {
-      return ws.close(1008, 'Session invalid or expired!');
+      return ws.close(1008, 'Invalid session!');
     }
     const meta = removeChannelSocket(ws);
     if (meta) {
-      const presenceMsg: PresenceType = {
+      const presenceMsg: WSPresenceEvent = {
         type: 'presence',
         event: 'leave',
         userId: meta.userId,
@@ -105,9 +133,21 @@ wss.on('connection', async (ws, req) => {
       emitPresence(presenceMsg);
     }
 
-    const emitOffline = removeUserSocket(session.userId, ws);
-    if (emitOffline) {
-      emitUserOffline(session.userId);
+    const wentOffline = removeUserSocket(session.userId, ws);
+    if (wentOffline) {
+      const usrActiveChEvent: WSUserActiveChannel = {
+        type: 'user_active_channel',
+        userId: session.userId,
+        channelId: null
+      };
+      broadcastAll(usrActiveChEvent);
+
+      const usrPresenceMsg: WSUserPresenceEvent = {
+        type: 'user_presence',
+        userId: session.userId,
+        online: false
+      };
+      broadcastAll(usrPresenceMsg);
     }
   });
 });
@@ -118,6 +158,11 @@ app.get('/channels', async (_, res) => {
   const allChannels = await getAllChannels();
   // console.log(allChannels);
   res.json(allChannels);
+});
+app.get('/users', async (_req, res) => {
+  const users = await getAllUsers();
+  // console.log(users);
+  res.json(users);
 });
 
 if (config.env === 'development') {

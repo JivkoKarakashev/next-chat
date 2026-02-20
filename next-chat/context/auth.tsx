@@ -1,8 +1,9 @@
 'use client';
 
-import { createContext, useState } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 
 import { AuthState } from "@/types/auth-state.ts";
+import { SocketStateContext } from "./socket.tsx";
 
 interface AuthStateInterface {
   isAuth: boolean,
@@ -33,6 +34,10 @@ function AuthStateContextProvider({ children, authStateInit }: { children: React
   const isAuthSetter = (isAuth: boolean) => setIsAuth(isAuth);
   const uIdSetter = (uId: string | undefined) => setUId(uId);
   const sIdSetter = (sId: string | undefined) => setSId(sId);
+
+  const { reset } = useContext(SocketStateContext);
+
+  useEffect(() => reset(), [reset, isAuth]);
 
   return (
     <AuthStateContext.Provider value={{ isAuth, uId, sId, isAuthSetter, uIdSetter, sIdSetter }}>

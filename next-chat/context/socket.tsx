@@ -1,157 +1,167 @@
 'use client';
 
-import { createContext, useContext, useEffect, useRef, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 
-import { createWebSocket } from "@/lib/socket.ts";
-import { JoinType, MessageType } from "@/types/ws-types.ts";
-import { AuthStateContext } from "./auth.tsx";
+import { createSocketTransport, SocketTransport } from "@/socket/socket.transport.ts";
+import { WSJoinRequest, WSChatRequest } from "@/types/ws-client-types.ts";
+import { WSServerEvent } from "@/types/ws-server-types.ts";
 import { Channel } from "@/types/channel.ts";
+import { AuthStateContext } from "./auth.tsx";
+
+import { dispatchMessage } from "@/socket/socket.dispatcher.ts";
+import { UIMessage } from "@/types/ws-server-types.ts";
+import { registerAllHandlers } from "@/socket/socket.register-handlers.ts";
 
 interface SocketStateInterface {
   connected: boolean,
-  isReady: boolean,
+  onlineUsers: string[],
+  usersActiveChannel: Record<string, string | null>,
   channels: Channel[],
-  activeChannel: string | null,
-  messages: Array<MessageType>,
+  unreadByChannel: Record<string, number>,
+  activeChannelId: string | null,
+  memoizedMessagesByChannel: UIMessage[],
   joinChannel: (channelName: string) => void,
-  send: (msg: MessageType) => void,
+  sendChat: (content: string) => void,
   reset: () => void
 }
 
 const SocketStateContext = createContext<SocketStateInterface>({
   connected: false,
-  isReady: false,
+  onlineUsers: [],
+  usersActiveChannel: {},
   channels: [],
-  activeChannel: null,
-  messages: [],
+  unreadByChannel: { '': 0 },
+  activeChannelId: null,
+  memoizedMessagesByChannel: [],
   joinChannel: () => { },
-  send: () => { },
+  sendChat: () => { },
   reset: () => { }
 });
 
 function SocketStateContextProvider({ children }: { children: React.ReactNode }): React.ReactElement {
-  const socketRef = useRef<WebSocket | null>(null);
-  const joinedRef = useRef<boolean>(false);
-  const { isAuth, uId } = useContext(AuthStateContext);
+
+  const transportRef = useRef<SocketTransport | null>(null);
+  const { isAuth } = useContext(AuthStateContext);
+
+  // CONNECTION STATE
   const [connected, setConnected] = useState(false);
   const [isReady, setIsReady] = useState(false);
-  const [messages, setMessages] = useState<MessageType[]>([]);
 
+  // ONLINE USERS STATE
+  const [onlineUsers, setOnlineUsers] = useState<string[]>([]);
+
+  // ACTIVE CHANNEL PER USER STATE
+  const [usersActiveChannel, setUsersActiveChannel] = useState<Record<string, string | null>>({});
+
+  // CHANNEL STATE
   const [channels, setChannels] = useState<Channel[]>([]);
-  const [activeChannel, setActiveChannel] = useState<string | null>(null);
+  const [activeChannelId, setActiveChannelId] = useState<string | null>(null);
 
-  const reset = () => {
-    joinedRef.current = false;
+  // MESSAGE STATE (per channel)
+  const [messagesByChannel, setMessagesByChannel] = useState<Record<string, UIMessage[]>>({});
+
+  // UNREAD COUNTER
+  const [unreadByChannel, setUnreadByChannel] = useState<Record<string, number>>({});
+
+  const memoizedMessagesByChannel = useMemo(() => {
+    if (!activeChannelId) {
+      return [];
+    }
+    return messagesByChannel[activeChannelId] ?? [];
+  }, [messagesByChannel, activeChannelId]);
+
+  // RESET
+  const reset = useCallback(() => {
+    // console.log('RESET SOCKET INVOKED!');
     setConnected(false);
     setIsReady(false);
-    setMessages([]);
-  };
+    setChannels([]);
+    setActiveChannelId(null);
+    setMessagesByChannel({});
+  }, []);
 
-  const joinChannel = (channelName: string) => {
-    if (!uId || !connected || !isReady) {
+  // JOIN CHANNEL
+  const joinChannel = useCallback((channelName: string) => {
+    if (!connected || !isReady) {
       return;
     }
 
-    if (channelName === activeChannel && joinedRef.current) {
-      return;
-    }
-
-    // reset channel state
-    setMessages([]);
-    setActiveChannel(channelName);
-
-    const joinMsg: JoinType = {
-      userId: uId,
+    const joinMsg: WSJoinRequest = {
       type: 'join',
-      channelName,
-      event: null,
+      channelName
     };
+    transportRef.current?.send(joinMsg);
+  }, [connected, isReady]);
 
-    console.log('JOIN CHANNEL', joinMsg);
-    send(joinMsg);
-    joinedRef.current = true;
-  };
+  // SEND CHAT
+  const sendChat = useCallback((content: string) => {
+    if (!activeChannelId) {
+      return;
+    }
 
-  const send = (msg: MessageType) => {
-    socketRef.current?.send(JSON.stringify(msg));
-  };
+    const chatMsg: WSChatRequest = {
+      type: 'chat',
+      channelId: activeChannelId,
+      content
+    };
+    transportRef.current?.send(chatMsg);
+  }, [activeChannelId]);
 
-  useEffect(() => {
-    console.log('isAuth:', isAuth);
-  }, [isAuth]);
-
+  // SOCKET LIFECYCLE
   useEffect(() => {
     if (!isAuth) {
-      socketRef.current?.close();
-      socketRef.current = null;
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      reset();
+      transportRef.current?.disconnect();
       return;
     }
 
-    const ws = createWebSocket();
-    socketRef.current = ws;
+    const transport = createSocketTransport();
+    transportRef.current = transport;
 
-    ws.onopen = () => {
-      console.log('WS TCP Connection OPEN', ws);
+    registerAllHandlers();
+
+    transport.onOpen(() => {
       setConnected(true);
-    };
+    });
 
-    ws.onmessage = (event) => {
-      const msg = JSON.parse(event.data) as MessageType;
-      console.log('WS MESSAGE', msg);
-
-      // 1️⃣ auth handshake
-      if (msg.type === 'system' && msg.content === 'authenticated') {
-        setIsReady(true);
-        return;
-      }
-
-      // 2️⃣ initial channels snapshot
-      if (msg.type === 'channels_snapshot') {
-        setChannels(msg.channels);
-        return;
-      }
-
-      // 3️⃣ channel created realtime
-      if (msg.type === 'channel_created') {
-        setChannels(prev => {
-          // prevent duplicates
-          if (prev.some(ch => ch.channelId === msg.channel.channelId)) {
-            return prev;
-          }
-          return [...prev, msg.channel];
-        });
-        return;
-      }
-
-      // 4️⃣ history
-      if (msg.type === 'history') {
-        // flatten the history array into individual messages
-        setMessages(msg.content.flat());
-        return;
-      }
-
-      // 5️⃣ everything else
-      // normal single message (chat, presence, etc.)
-      setMessages(prev => [...prev, msg]);
-    };
-
-    ws.onclose = () => {
-      console.log('WS CLOSED');
+    transport.onClose(() => {
       reset();
-    };
+    });
 
-    ws.onerror = () => {
-      socketRef.current?.close();
-      socketRef.current = null;
-    };
+    transport.onMessage((msg: WSServerEvent) => {
+      dispatchMessage(msg, {
+        setIsReady,
+        setChannels,
+        setActiveChannelId,
+        setMessagesByChannel,
+        setUnreadByChannel,
+        setOnlineUsers,
+        setUsersActiveChannel
+      });
+    });
 
-    return () => ws.close();
-  }, [isAuth]);
+    transport.connect();
+
+    return () => {
+      transport.disconnect();
+    };
+  }, [isAuth, reset]);
+
+  // CONTEXT VALUE
+  const value = useMemo<SocketStateInterface>(() => ({
+    connected,
+    onlineUsers,
+    usersActiveChannel,
+    channels,
+    unreadByChannel,
+    activeChannelId,
+    memoizedMessagesByChannel,
+    joinChannel,
+    sendChat,
+    reset
+  }), [connected, onlineUsers, usersActiveChannel, channels, unreadByChannel, activeChannelId, memoizedMessagesByChannel, joinChannel, sendChat, reset]);
 
   return (
-    <SocketStateContext.Provider value={{ connected, isReady, channels, activeChannel, messages, joinChannel, send, reset }}>
+    <SocketStateContext.Provider value={value}>
       {children}
     </SocketStateContext.Provider>
   );

@@ -1,10 +1,12 @@
-import { WS, MessageType, SystemType } from './ws/types';
+import { WS, WSSystemEvent, } from './ws/ws-server-types';
 import { Session } from './utils/validateSession';
 
+import { WSClientEvent } from './ws/ws-client-types';
 import { joinHandler } from './handlers/join.handler';
 import { chatHandler } from './handlers/chat.handler';
+import { seenHandler } from './handlers/seen.handler';
 
-async function messageRouter(ws: WS, msg: MessageType, session: Session) {
+async function messageRouter(ws: WS, msg: WSClientEvent, session: Session) {
   switch (msg.type) {
     // --- Handle join ---
     case 'join': {
@@ -14,13 +16,15 @@ async function messageRouter(ws: WS, msg: MessageType, session: Session) {
     case 'chat': {
       return chatHandler(ws, msg);
     }
+    // --- Handle seen ---
+    case 'seen': {
+      return seenHandler(ws, msg);
+    }
     default: {
-      const sysMsg: SystemType = {
+      console.log('Unknown message type!');
+      const sysMsg: WSSystemEvent = {
         type: 'system',
-        userId: 'system',
-        content: `Unknown message type: ${msg.type}`,
-        event: null,
-        channelName: null
+        content: `Unknown message type: ${msg}`
       };
       ws.send(JSON.stringify(sysMsg));
     }

@@ -3,7 +3,6 @@
 import { useContext, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 
 import authIcon from '@/public/images/auth-icon.jpg';
 import styles from './auth-form.module.css';
@@ -15,19 +14,18 @@ import { AuthStateContext } from '@/context/auth.tsx';
 import { formValidator } from '@/utils/form-validator.ts';
 
 const AuthForm = ({ authmode }: { authmode: AuthMode }): React.ReactElement => {
-  console.log(`Auth mode:${authmode}`);
+  // console.log(`Auth mode:${authmode}`);
   const { isAuthSetter, uIdSetter, sIdSetter } = useContext(AuthStateContext);
   const [username, setUsername] = useState<string>('');
   const [email, setEmail] = useState<string>('');
   const [password, setPassword] = useState<string>('');
   const [registerFormState, setRegisterFormState] = useState<RegisterFormState>(registerFormStateInit);
   const [loginFormState, setLoginFormState] = useState<LoginFormState>(loginFormStateInit);
-  const router = useRouter();
 
   const formSubmitHandler = async (e: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
     e.preventDefault();
     const fState = formValidator(authmode, username.trim(), email.trim(), password.trim());
-    console.log(fState);
+    // console.log(fState);
     if (authmode === 'register') {
       setRegisterFormState(fState as RegisterFormState);
       // console.log(fState);
@@ -78,7 +76,6 @@ const AuthForm = ({ authmode }: { authmode: AuthMode }): React.ReactElement => {
         isAuthSetter(true);
         uIdSetter(authResult.uId);
         sIdSetter(authResult.sId);
-        router.replace('/chat');
       }
     }
   };
