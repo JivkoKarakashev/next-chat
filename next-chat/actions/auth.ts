@@ -4,7 +4,7 @@ import { cookies } from "next/headers";
 import { DatabaseError } from "pg";
 
 import { FormDataEntries } from "@/types/form-data-entries.ts";
-import { createUser, getUserByEmail } from "@/lib/users.ts";
+import { createUser, createdUserNotification, getUserByEmail } from "@/lib/users.ts";
 import { RegisterUser } from "@/types/user.ts";
 import { hashPassword, verifyPassword } from "@/utils/hash.ts";
 import { createSession, deleteSession } from "@/lib/sessions.ts";
@@ -38,6 +38,7 @@ const register = async (formData: FormDataEntries): Promise<AuthResult> => {
         const user_id = await createUser(regUser);
         // console.log(user_id);
         const session = await createSession(user_id);
+        await createdUserNotification({ id, username });
         const cookieStore = await cookies();
         const sessionCookieOptions = createSessionCookieOptions(session.expires_at);
         cookieStore.set('session', session.id, sessionCookieOptions);

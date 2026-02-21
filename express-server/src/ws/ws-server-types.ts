@@ -128,6 +128,11 @@ interface WSUserActiveChannel {
   channelId: string | null
 }
 
+type WSUserCreatedEvent = {
+  type: 'user_created',
+  user: DBUserRow
+}
+
 type WSServerEvent =
   | WSAuthEvent
   | WSSystemEvent
@@ -142,7 +147,8 @@ type WSServerEvent =
   | WSUserPresenceEvent
   | WSOnlineUserSnapshot
   | WSActiveChannelsSnapshot
-  | WSUserActiveChannel;
+  | WSUserActiveChannel
+  | WSUserCreatedEvent;
 
 interface WSReceiptSnapshot {
   userId: string,
@@ -182,6 +188,7 @@ export {
   type WSOnlineUserSnapshot,
   type WSActiveChannelsSnapshot,
   type WSUserActiveChannel,
+  type WSUserCreatedEvent,
   type WSServerEvent,
   type WSReceiptSnapshot,
   type DBMessageWithReceipts

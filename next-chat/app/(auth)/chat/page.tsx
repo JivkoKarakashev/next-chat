@@ -18,8 +18,7 @@ import { DBUserRow } from "@/types/ws-server-types.ts";
 
 const ChatPage = (): React.ReactElement => {
   const { isAuth, uId } = useContext(AuthStateContext);
-  const [allUsers, setAllUsers] = useState<DBUserRow[]>([]);
-  const { connected, onlineUsers } = useContext(SocketStateContext);
+  const { connected, allUsers, allUsersSetter, onlineUsers } = useContext(SocketStateContext);
   const { channels, usersActiveChannel, activeChannelId, memoizedMessagesByChannel, joinChannel, sendChat } = useContext(SocketStateContext);
   const txtAreaRef = useRef<HTMLTextAreaElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
@@ -38,7 +37,7 @@ const ChatPage = (): React.ReactElement => {
         }
         return (res.json()) as unknown as DBUserRow[];
       })
-      .then(setAllUsers)
+      .then(allUsersSetter)
       .catch(console.error);
   }, []);
 

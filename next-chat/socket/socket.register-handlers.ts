@@ -13,9 +13,11 @@ import { userPresenceHandler } from "./handlers/user-presence.handler.ts";
 import { onlineSnapshotHandler } from "./handlers/online-snapshot.handler.ts";
 import { activeChannelSnapshotHandler } from "./handlers/active-channel-snapshot.handler.ts";
 import { usersActiveChannelHandler } from "./handlers/users-active-channel.handler.ts";
+import { userCreatedHandler } from "./handlers/user-created.handler.ts";
 
 function registerAllHandlers() {
   registerHandler('auth', authHandler);
+  registerHandler('user_created', userCreatedHandler);
   registerHandler('online_snapshot', onlineSnapshotHandler);
   registerHandler('user_presence', userPresenceHandler);
   registerHandler('unread_snapshot', unreadHandler);

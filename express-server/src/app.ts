@@ -13,8 +13,11 @@ import { Session, validateSession } from "./utils/validateSession";
 import { getAllChannels } from "./api/chat";
 import { messageRouter } from "./router";
 import { getUnreadCountsByUser } from "./api/message-receipts";
-import { getAllUsers } from "./api/users";
 import { broadcastAll } from "./utils/broadcast";
+import { userCreatedHandler } from "./api/user-created";
+import { requireXInternalSecret } from "./middleware/internal-secret";
+import { usersHandler } from "./api/users-handler";
+import { channelsHandler } from "./api/channels-handler";
 
 
 // --- Express + WebSocket setup ---
@@ -153,17 +156,10 @@ wss.on('connection', async (ws, req) => {
 });
 
 app.use(express.json());
-app.get('/health', (_req, res) => res.json({ ok: true, environment: config.env }));
-app.get('/channels', async (_, res) => {
-  const allChannels = await getAllChannels();
-  // console.log(allChannels);
-  res.json(allChannels);
-});
-app.get('/users', async (_req, res) => {
-  const users = await getAllUsers();
-  // console.log(users);
-  res.json(users);
-});
+app.get('/internal/health', (_req, res) => res.json({ ok: true, environment: config.env }));
+app.get('/internal/channels', requireXInternalSecret, channelsHandler);
+app.get('/internal/users', requireXInternalSecret, usersHandler);
+app.post('/internal/user-created', requireXInternalSecret, userCreatedHandler);
 
 if (config.env === 'development') {
   server.listen(config.port, () => {

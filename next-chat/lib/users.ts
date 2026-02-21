@@ -1,5 +1,6 @@
 import { AuthUser, RegisterUser } from '@/types/user.ts';
 import { pool } from '@/lib/db.ts';
+import { DBUserRow } from '@/types/ws-server-types.ts';
 
 const createUser = async ({ id, username, email, hash, created_at }: RegisterUser): Promise<string> => {
   // console.log({ id, username, email, hash, created_at });
@@ -21,7 +22,21 @@ const getUserByEmail = async (email: string): Promise<AuthUser | undefined> => {
   return rows[0] ?? undefined;
 };
 
+const createdUserNotification = async (user: DBUserRow) => {
+  const body = JSON.stringify(user);
+  const options: RequestInit = {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-internal-secret': process.env.X_INTERNAL_SECRET!
+    },
+    body
+  };
+  await fetch('http://localhost:3030/internal/user-created', options);
+};
+
 export {
   createUser,
-  getUserByEmail
+  getUserByEmail,
+  createdUserNotification
 }

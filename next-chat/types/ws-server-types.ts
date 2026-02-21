@@ -31,7 +31,7 @@ interface DBUserRow {
   username: string
 }
 
-type WSServerEventType = | 'auth' | 'system' | 'chat' | 'edit' | 'history' | 'presence' | 'channel_created' | 'channels_snapshot' | 'seen_update' | 'unread_snapshot' | 'user_presence' | 'online_snapshot' | 'active_channel_snapshot' | 'user_active_channel';
+type WSServerEventType = | 'auth' | 'system' | 'chat' | 'edit' | 'history' | 'presence' | 'channel_created' | 'channels_snapshot' | 'seen_update' | 'unread_snapshot' | 'user_presence' | 'online_snapshot' | 'active_channel_snapshot' | 'user_active_channel' | 'user_created';
 
 interface WSAuthEvent {
   type: 'auth',
@@ -129,6 +129,11 @@ interface WSUserActiveChannel {
   channelId: string | null
 }
 
+type WSUserCreatedEvent = {
+  type: 'user_created',
+  user: DBUserRow
+}
+
 type WSServerEvent =
   | WSAuthEvent
   | WSSystemEvent
@@ -143,7 +148,8 @@ type WSServerEvent =
   | WSUserPresenceEvent
   | WSOnlineUserSnapshot
   | WSActiveChannelsSnapshot
-  | WSUserActiveChannel;
+  | WSUserActiveChannel
+  | WSUserCreatedEvent;
 
 type UIMessage =
   | WSChatEvent
@@ -187,6 +193,7 @@ export {
   type WSOnlineUserSnapshot,
   type WSActiveChannelsSnapshot,
   type WSUserActiveChannel,
+  type WSUserCreatedEvent,
   type WSServerEvent,
   type WSServerEventType,
   type UIMessage,

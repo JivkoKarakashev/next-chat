@@ -4,7 +4,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 
 import { createSocketTransport, SocketTransport } from "@/socket/socket.transport.ts";
 import { WSJoinRequest, WSChatRequest } from "@/types/ws-client-types.ts";
-import { WSServerEvent } from "@/types/ws-server-types.ts";
+import { DBUserRow, WSServerEvent } from "@/types/ws-server-types.ts";
 import { Channel } from "@/types/channel.ts";
 import { AuthStateContext } from "./auth.tsx";
 
@@ -14,6 +14,8 @@ import { registerAllHandlers } from "@/socket/socket.register-handlers.ts";
 
 interface SocketStateInterface {
   connected: boolean,
+  allUsers: DBUserRow[],
+  allUsersSetter: (users: DBUserRow[]) => void,
   onlineUsers: string[],
   usersActiveChannel: Record<string, string | null>,
   channels: Channel[],
@@ -27,6 +29,8 @@ interface SocketStateInterface {
 
 const SocketStateContext = createContext<SocketStateInterface>({
   connected: false,
+  allUsers: [],
+  allUsersSetter: () => { },
   onlineUsers: [],
   usersActiveChannel: {},
   channels: [],
@@ -46,6 +50,9 @@ function SocketStateContextProvider({ children }: { children: React.ReactNode })
   // CONNECTION STATE
   const [connected, setConnected] = useState(false);
   const [isReady, setIsReady] = useState(false);
+
+  // ALL USERS STATE
+  const [allUsers, setAllUsers] = useState<DBUserRow[]>([]);
 
   // ONLINE USERS STATE
   const [onlineUsers, setOnlineUsers] = useState<string[]>([]);
@@ -107,6 +114,14 @@ function SocketStateContextProvider({ children }: { children: React.ReactNode })
     transportRef.current?.send(chatMsg);
   }, [activeChannelId]);
 
+  // SEND ALL USERS
+  const allUsersSetter = useCallback((users: DBUserRow[]) => {
+
+    setAllUsers(prev => {
+      return Array.from(new Map([...prev, ...users].map(user => [user.id, user])).values()).sort((a, b) => a.username.localeCompare(b.username));
+    });
+  }, []);
+
   // SOCKET LIFECYCLE
   useEffect(() => {
     if (!isAuth) {
@@ -134,6 +149,7 @@ function SocketStateContextProvider({ children }: { children: React.ReactNode })
         setActiveChannelId,
         setMessagesByChannel,
         setUnreadByChannel,
+        setAllUsers,
         setOnlineUsers,
         setUsersActiveChannel
       });
@@ -149,6 +165,8 @@ function SocketStateContextProvider({ children }: { children: React.ReactNode })
   // CONTEXT VALUE
   const value = useMemo<SocketStateInterface>(() => ({
     connected,
+    allUsers,
+    allUsersSetter,
     onlineUsers,
     usersActiveChannel,
     channels,
@@ -158,7 +176,7 @@ function SocketStateContextProvider({ children }: { children: React.ReactNode })
     joinChannel,
     sendChat,
     reset
-  }), [connected, onlineUsers, usersActiveChannel, channels, unreadByChannel, activeChannelId, memoizedMessagesByChannel, joinChannel, sendChat, reset]);
+  }), [connected, allUsers, allUsersSetter, onlineUsers, usersActiveChannel, channels, unreadByChannel, activeChannelId, memoizedMessagesByChannel, joinChannel, sendChat, reset]);
 
   return (
     <SocketStateContext.Provider value={value}>
