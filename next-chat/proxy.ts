@@ -3,8 +3,8 @@ import type { NextRequest } from "next/server";
 
 const wsSrc =
   process.env.NODE_ENV === 'development'
-    ? 'ws://localhost:3030 http://localhost:3030'
-    : 'https://socket-next.onrender.com wss://socket-next.onrender.com';
+    ? "ws://localhost:3030 http://localhost:3030"
+    : "https://socket-next.onrender.com wss://socket-next.onrender.com";
 
 const csp = `
   default-src 'self';
