@@ -19,5 +19,5 @@ firebase.json
 firebase*
 
 #ENV
-env*
+# env*
 .env*
