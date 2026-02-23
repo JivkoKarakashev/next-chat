@@ -1,28 +1,29 @@
-import { Pool } from 'pg';
+import { Pool, PoolConfig } from 'pg';
 import { env } from '../env';
 
 declare global {
-    // prevent hot-reload pool duplication in dev
-    var pgPool: Pool | undefined;
+  // prevent hot-reload pool duplication in dev
+  var pgPool: Pool | undefined;
 }
 
 if (!process.env.POSTGRES_URL) {
-    throw new Error('POSTGRES_URL is missing!');
+  throw new Error('POSTGRES_URL is missing!');
 }
 
 const pool: Pool = global.pgPool ??
-    new Pool({
-        connectionString: env.POSTGRES_URL
-    });
+  new Pool({
+    connectionString: env.POSTGRES_URL,
+    // ssl: { rejectUnauthorized: false },
+  });
 
 pool.query('select 1').then(() => {
-    console.log('Postgres connected');
+  console.log('Postgres connected');
 });
 
 if (env.NODE_ENV !== 'production') {
-    global.pgPool = pool;
+  global.pgPool = pool;
 }
 
 export {
-    pool
+  pool
 }
