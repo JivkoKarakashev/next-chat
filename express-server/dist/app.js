@@ -42,18 +42,18 @@ const express_1 = __importDefault(require("express"));
 const cors_1 = __importDefault(require("cors"));
 const ws_1 = require("ws");
 const cookies = __importStar(require("cookie"));
-const config_js_1 = __importDefault(require("./config.js"));
-const connectionStore_js_1 = require("./ws/connectionStore.js");
-const presence_js_1 = require("./utils/presence.js");
-const validateSession_js_1 = require("./utils/validateSession.js");
-const chat_js_1 = require("./api/chat.js");
-const router_js_1 = require("./router.js");
-const message_receipts_js_1 = require("./api/message-receipts.js");
-const broadcast_js_1 = require("./utils/broadcast.js");
-const user_created_js_1 = require("./api/user-created.js");
-const internal_secret_js_1 = require("./middleware/internal-secret.js");
-const users_handler_js_1 = require("./api/users-handler.js");
-const channels_handler_js_1 = require("./api/channels-handler.js");
+const config_1 = __importDefault(require("./config"));
+const connectionStore_1 = require("./ws/connectionStore");
+const presence_1 = require("./utils/presence");
+const validateSession_1 = require("./utils/validateSession");
+const chat_1 = require("./api/chat");
+const router_1 = require("./router");
+const message_receipts_1 = require("./api/message-receipts");
+const broadcast_1 = require("./utils/broadcast");
+const user_created_1 = require("./api/user-created");
+const internal_secret_1 = require("./middleware/internal-secret");
+const users_handler_1 = require("./api/users-handler");
+const channels_handler_1 = require("./api/channels-handler");
 // --- Express + WebSocket setup ---
 const app = (0, express_1.default)();
 exports.app = app;
@@ -73,18 +73,18 @@ wss.on('connection', async (ws, req) => {
         if (!sessionId) {
             return ws.close(1008, 'No session!');
         }
-        session = await (0, validateSession_js_1.validateSession)(sessionId);
+        session = await (0, validateSession_1.validateSession)(sessionId);
         if (!session) {
             return ws.close(1008, 'Invalid session!');
         }
-        const bacameOnline = (0, connectionStore_js_1.addUserSocket)(session.userId, ws);
+        const bacameOnline = (0, connectionStore_1.addUserSocket)(session.userId, ws);
         if (bacameOnline) {
             const usrPresenceMsg = {
                 type: 'user_presence',
                 userId: session.userId,
                 online: true
             };
-            (0, broadcast_js_1.broadcastAll)(usrPresenceMsg);
+            (0, broadcast_1.broadcastAll)(usrPresenceMsg);
         }
         console.log('User is ready.');
         console.log('Sent auth confirmation to client.');
@@ -97,25 +97,25 @@ wss.on('connection', async (ws, req) => {
         //  ONLINE USERS SNAPSHOT
         const onlineUsrSnapshotMsg = {
             type: 'online_snapshot',
-            users: (0, connectionStore_js_1.getOnlineUserIds)()
+            users: (0, connectionStore_1.getOnlineUserIds)()
         };
         ws.send(JSON.stringify(onlineUsrSnapshotMsg));
         // UNREAD SNAPSHOT
-        const unread = await (0, message_receipts_js_1.getUnreadCountsByUser)(session.userId);
+        const unread = await (0, message_receipts_1.getUnreadCountsByUser)(session.userId);
         const unreadSnapshotMsg = {
             type: 'unread_snapshot',
             unread
         };
         ws.send(JSON.stringify(unreadSnapshotMsg));
         // SEND CHANNELS SNAPSHOT
-        const channels = await (0, chat_js_1.getAllChannels)();
+        const channels = await (0, chat_1.getAllChannels)();
         const chSnapshotMsg = {
             type: 'channels_snapshot',
             channels
         };
         ws.send(JSON.stringify(chSnapshotMsg));
         // SEND ACTIVE CHANNELS SNAPSHOT
-        const data = (0, connectionStore_js_1.getActiveChannelsSnapshot)();
+        const data = (0, connectionStore_1.getActiveChannelsSnapshot)();
         const activeChSnapshotMsg = {
             type: 'active_channel_snapshot',
             data
@@ -142,13 +142,13 @@ wss.on('connection', async (ws, req) => {
             console.log('Error occurred on message parse!');
             return;
         }
-        await (0, router_js_1.messageRouter)(ws, msg, session);
+        await (0, router_1.messageRouter)(ws, msg, session);
     });
     ws.on('close', () => {
         if (!session) {
             return ws.close(1008, 'Invalid session!');
         }
-        const meta = (0, connectionStore_js_1.removeChannelSocket)(ws);
+        const meta = (0, connectionStore_1.removeChannelSocket)(ws);
         if (meta) {
             const presenceMsg = {
                 type: 'presence',
@@ -158,30 +158,30 @@ wss.on('connection', async (ws, req) => {
                 channelId: meta.channelId,
                 channelName: meta.channelName
             };
-            (0, presence_js_1.emitPresence)(presenceMsg);
+            (0, presence_1.emitPresence)(presenceMsg);
         }
-        const wentOffline = (0, connectionStore_js_1.removeUserSocket)(session.userId, ws);
+        const wentOffline = (0, connectionStore_1.removeUserSocket)(session.userId, ws);
         if (wentOffline) {
             const usrActiveChEvent = {
                 type: 'user_active_channel',
                 userId: session.userId,
                 channelId: null
             };
-            (0, broadcast_js_1.broadcastAll)(usrActiveChEvent);
+            (0, broadcast_1.broadcastAll)(usrActiveChEvent);
             const usrPresenceMsg = {
                 type: 'user_presence',
                 userId: session.userId,
                 online: false
             };
-            (0, broadcast_js_1.broadcastAll)(usrPresenceMsg);
+            (0, broadcast_1.broadcastAll)(usrPresenceMsg);
         }
     });
 });
 app.use(express_1.default.json());
-app.get('/internal/health', (_req, res) => res.json({ ok: true, environment: config_js_1.default.env }));
-app.get('/internal/channels', internal_secret_js_1.requireXInternalSecret, channels_handler_js_1.channelsHandler);
-app.get('/internal/users', internal_secret_js_1.requireXInternalSecret, users_handler_js_1.usersHandler);
-app.post('/internal/user-created', internal_secret_js_1.requireXInternalSecret, user_created_js_1.userCreatedHandler);
-server.listen(config_js_1.default.port || process.env.LISTENING_PORT || 3030, () => {
-    console.log(`HTTP + WS server listening on port ${config_js_1.default.port} [env: ${config_js_1.default.env}]`);
+app.get('/internal/health', (_req, res) => res.json({ ok: true, environment: config_1.default.env }));
+app.get('/internal/channels', internal_secret_1.requireXInternalSecret, channels_handler_1.channelsHandler);
+app.get('/internal/users', internal_secret_1.requireXInternalSecret, users_handler_1.usersHandler);
+app.post('/internal/user-created', internal_secret_1.requireXInternalSecret, user_created_1.userCreatedHandler);
+server.listen(config_1.default.port || process.env.LISTENING_PORT || 3030, () => {
+    console.log(`HTTP + WS server listening on port ${config_1.default.port} [env: ${config_1.default.env}]`);
 });

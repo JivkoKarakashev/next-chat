@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 
-import { env } from "../env.js";
+import { env } from "../env";
 
 const requireXInternalSecret = (req: Request, res: Response, next: NextFunction) => {
   const headerValue = req.get('x-internal-secret');

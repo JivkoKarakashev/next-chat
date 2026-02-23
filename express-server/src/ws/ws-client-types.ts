@@ -2,7 +2,7 @@
 //    CLIENT → SERVER
 // ============================
 
-import { WSReceiptSnapshot } from "./ws-server-types.js";
+import { WSReceiptSnapshot } from "./ws-server-types";
 
 interface WSJoinRequest {
   type: 'join',

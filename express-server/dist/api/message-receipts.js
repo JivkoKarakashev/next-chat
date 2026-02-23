@@ -1,9 +1,9 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getReceiptSnapshot = exports.getUnreadCountsByUser = exports.markDeliveredForUsers = exports.markSeenUpToMessage = exports.markDelivered = exports.insertMessageReceipts = void 0;
-const db_js_1 = require("../lib/db.js");
+const db_1 = require("../lib/db");
 const insertMessageReceipts = async (messageInternalId, channelId) => {
-    await db_js_1.pool.query(`
+    await db_1.pool.query(`
       INSERT INTO message_receipts (message_id, user_id)
       SELECT $1, user_id
       FROM channel_users
@@ -14,7 +14,7 @@ const insertMessageReceipts = async (messageInternalId, channelId) => {
 };
 exports.insertMessageReceipts = insertMessageReceipts;
 const markDelivered = async (messageInternalId, userId) => {
-    await db_js_1.pool.query(`
+    await db_1.pool.query(`
       UPDATE message_receipts
       SET delivered_at = NOW()
       WHERE message_id = $1
@@ -24,7 +24,7 @@ const markDelivered = async (messageInternalId, userId) => {
 };
 exports.markDelivered = markDelivered;
 const markSeenUpToMessage = async (channelId, userId, lastMessagePublicId) => {
-    const { rows } = await db_js_1.pool.query(`
+    const { rows } = await db_1.pool.query(`
       UPDATE message_receipts AS mr
       SET seen_at = NOW()
       FROM messages AS m
@@ -51,7 +51,7 @@ const markSeenUpToMessage = async (channelId, userId, lastMessagePublicId) => {
 };
 exports.markSeenUpToMessage = markSeenUpToMessage;
 const markDeliveredForUsers = async (messageInternalId, userIds) => {
-    const { rows } = await db_js_1.pool.query(`
+    const { rows } = await db_1.pool.query(`
       UPDATE message_receipts
       SET delivered_at = NOW()
       WHERE 
@@ -63,7 +63,7 @@ const markDeliveredForUsers = async (messageInternalId, userIds) => {
 };
 exports.markDeliveredForUsers = markDeliveredForUsers;
 const getUnreadCountsByUser = async (userId) => {
-    const { rows } = await db_js_1.pool.query(`
+    const { rows } = await db_1.pool.query(`
     SELECT 
       m.channel_id AS "channelId",
       COUNT(*)::text AS "count"
@@ -82,7 +82,7 @@ const getUnreadCountsByUser = async (userId) => {
 };
 exports.getUnreadCountsByUser = getUnreadCountsByUser;
 const getReceiptSnapshot = async (publicId) => {
-    const { rows } = await db_js_1.pool.query(`
+    const { rows } = await db_1.pool.query(`
       SELECT
       mr.user_id AS "userId",
       mr.delivered_at AS "deliveredAt",

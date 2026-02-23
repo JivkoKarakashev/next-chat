@@ -1,12 +1,12 @@
-import { WS, WSChannelCreatedEvent, WSHistoryEvent, WSPresenceEvent, WSSeenUpdateEvent, WSUnreadSnapshotEvent, WSUserActiveChannel } from '../ws/ws-server-types.js';
-import { WSJoinRequest } from '../ws/ws-client-types.js';
-import { ClientMeta, addChannelSocket, getMetaBySocket, setUserActiveChannel, switchChannelById } from '../ws/connectionStore.js';
-import { addUserToChannel, getChatHistoryByChannel, getOrCreateChannelByName } from '../api/chat.js';
-import { emitPresence } from '../utils/presence.js';
-import { broadcastAll, broadcastToChannel, sendChatHistoryToClient, sendToUser } from '../utils/broadcast.js';
-import { Session } from '../utils/validateSession.js';
-import { markSeenUpToMessage } from '../api/message-receipts.js';
-import { getUnreadCountsByUser } from '../api/message-receipts.js';
+import { WS, WSChannelCreatedEvent, WSHistoryEvent, WSPresenceEvent, WSSeenUpdateEvent, WSUnreadSnapshotEvent, WSUserActiveChannel } from '../ws/ws-server-types';
+import { WSJoinRequest } from '../ws/ws-client-types';
+import { ClientMeta, addChannelSocket, getMetaBySocket, setUserActiveChannel, switchChannelById } from '../ws/connectionStore';
+import { addUserToChannel, getChatHistoryByChannel, getOrCreateChannelByName } from '../api/chat';
+import { emitPresence } from '../utils/presence';
+import { broadcastAll, broadcastToChannel, sendChatHistoryToClient, sendToUser } from '../utils/broadcast';
+import { Session } from '../utils/validateSession';
+import { markSeenUpToMessage } from '../api/message-receipts';
+import { getUnreadCountsByUser } from '../api/message-receipts';
 
 const joinHandler = async (ws: WS, msg: WSJoinRequest, session: Session) => {
   // Fetch channel

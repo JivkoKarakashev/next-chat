@@ -32,7 +32,7 @@ const createdUserNotification = async (user: DBUserRow) => {
     },
     body
   };
-  await fetch('http://localhost:3030/internal/user-created', options);
+  await fetch(`${process.env.API_URL}/internal/user-created`, options);
 };
 
 export {

@@ -1,6 +1,6 @@
 import { Pool } from 'pg';
 
-import { env } from '../env.js';
+import { env } from '../env';
 
 declare global {
   // prevent hot-reload pool duplication in dev

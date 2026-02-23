@@ -1,6 +1,6 @@
-import { pool } from '../lib/db.js';
-import { DBChannelRow, DBMessageRow, DBMessageWithReceipts } from '../ws/ws-server-types.js';
-import { generateSecureRandomId as generateId } from '../utils/secure-random-string.js';
+import { pool } from '../lib/db';
+import { DBChannelRow, DBMessageRow, DBMessageWithReceipts } from '../ws/ws-server-types';
+import { generateSecureRandomId as generateId } from '../utils/secure-random-string';
 
 interface Channel {
   channelId: string,

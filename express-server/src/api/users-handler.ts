@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 
-import { getAllUsers } from '../api/users.js';
+import { getAllUsers } from '../api/users';
 
 const usersHandler = async (_: Request, res: Response) => {
   const users = await getAllUsers();

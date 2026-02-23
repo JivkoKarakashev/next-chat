@@ -1,4 +1,4 @@
-import { WS } from '../ws/ws-server-types.js';
+import { WS } from '../ws/ws-server-types';
 
 interface ClientMeta {
   userId: string,

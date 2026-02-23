@@ -1,7 +1,7 @@
 import { WebSocket as WSRuntime } from 'ws';
 
-import { WSPresenceEvent, WS } from '../ws/ws-server-types.js';
-import { getSocketsByChannel } from "../ws/connectionStore.js";
+import { WSPresenceEvent, WS } from '../ws/ws-server-types';
+import { getSocketsByChannel } from "../ws/connectionStore";
 
 // Emit a presence event to all clients in a channel
 const emitPresence = (msg: WSPresenceEvent): void => {

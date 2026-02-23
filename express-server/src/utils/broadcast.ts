@@ -1,9 +1,9 @@
 import { WebSocket as WSRuntime } from 'ws';
 
-import { wss } from '../app.js';
+import { wss } from '../app';
 
-import { WS, WSHistoryEvent, WSServerEvent } from "../ws/ws-server-types.js";
-import { getSocketsByChannel, getSocketsByUserId } from '../ws/connectionStore.js';
+import { WS, WSHistoryEvent, WSServerEvent } from "../ws/ws-server-types";
+import { getSocketsByChannel, getSocketsByUserId } from '../ws/connectionStore';
 
 // --- Broadcast helpers ---
 const broadcastToChannel = (channelId: string, msg: WSServerEvent): void => {
