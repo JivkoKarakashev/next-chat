@@ -4,20 +4,20 @@ import cors from "cors";
 import { WebSocketServer } from "ws";
 import * as cookies from "cookie";
 
-import config from "./config";
-import { WSActiveChannelsSnapshot, WSAuthEvent, WSChannelsSnapshotEvent, WSOnlineUserSnapshot, WSPresenceEvent, WSUnreadSnapshotEvent, WSUserActiveChannel, WSUserPresenceEvent } from "./ws/ws-server-types";
-import { WSClientEvent } from "./ws/ws-client-types";
-import { addUserSocket, getActiveChannelsSnapshot, getOnlineUserIds, removeChannelSocket, removeUserSocket } from "./ws/connectionStore";
-import { emitPresence } from "./utils/presence";
-import { Session, validateSession } from "./utils/validateSession";
-import { getAllChannels } from "./api/chat";
-import { messageRouter } from "./router";
-import { getUnreadCountsByUser } from "./api/message-receipts";
-import { broadcastAll } from "./utils/broadcast";
-import { userCreatedHandler } from "./api/user-created";
-import { requireXInternalSecret } from "./middleware/internal-secret";
-import { usersHandler } from "./api/users-handler";
-import { channelsHandler } from "./api/channels-handler";
+import config from "./config.js";
+import { WSActiveChannelsSnapshot, WSAuthEvent, WSChannelsSnapshotEvent, WSOnlineUserSnapshot, WSPresenceEvent, WSUnreadSnapshotEvent, WSUserActiveChannel, WSUserPresenceEvent } from "./ws/ws-server-types.js";
+import { WSClientEvent } from "./ws/ws-client-types.js";
+import { addUserSocket, getActiveChannelsSnapshot, getOnlineUserIds, removeChannelSocket, removeUserSocket } from "./ws/connectionStore.js";
+import { emitPresence } from "./utils/presence.js";
+import { Session, validateSession } from "./utils/validateSession.js";
+import { getAllChannels } from "./api/chat.js";
+import { messageRouter } from "./router.js";
+import { getUnreadCountsByUser } from "./api/message-receipts.js";
+import { broadcastAll } from "./utils/broadcast.js";
+import { userCreatedHandler } from "./api/user-created.js";
+import { requireXInternalSecret } from "./middleware/internal-secret.js";
+import { usersHandler } from "./api/users-handler.js";
+import { channelsHandler } from "./api/channels-handler.js";
 
 
 // --- Express + WebSocket setup ---

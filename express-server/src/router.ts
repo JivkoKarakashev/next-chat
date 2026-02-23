@@ -1,10 +1,10 @@
-import { WS, WSSystemEvent, } from './ws/ws-server-types';
-import { Session } from './utils/validateSession';
+import { WS, WSSystemEvent, } from './ws/ws-server-types.js';
+import { WSClientEvent } from './ws/ws-client-types.js';
+import { Session } from './utils/validateSession.js';
 
-import { WSClientEvent } from './ws/ws-client-types';
-import { joinHandler } from './handlers/join.handler';
-import { chatHandler } from './handlers/chat.handler';
-import { seenHandler } from './handlers/seen.handler';
+import { joinHandler } from './handlers/join.handler.js';
+import { chatHandler } from './handlers/chat.handler.js';
+import { seenHandler } from './handlers/seen.handler.js';
 
 async function messageRouter(ws: WS, msg: WSClientEvent, session: Session) {
   switch (msg.type) {

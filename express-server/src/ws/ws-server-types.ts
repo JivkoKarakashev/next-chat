@@ -1,7 +1,7 @@
 import type WebSocket from "ws";
 
-import { Channel } from "../api/chat";
-import { ActiveChannelsSnapshot } from "./connectionStore";
+import { Channel } from "../api/chat.js";
+import { ActiveChannelsSnapshot } from "./connectionStore.js";
 
 // ============================
 //    SERVER → CLIENT

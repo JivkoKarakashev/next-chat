@@ -1,9 +1,9 @@
-import { WS, WSChatEvent, WSUnreadSnapshotEvent } from '../ws/ws-server-types';
-import { getMetaBySocket, getSocketsByChannel } from '../ws/connectionStore';
-import { InsertMessageArgs, getUserIdsByChannel, insertMessage } from '../api/chat';
-import { broadcastToChannel, sendToUser } from '../utils/broadcast';
-import { WSChatRequest } from '../ws/ws-client-types';
-import { getReceiptSnapshot, getUnreadCountsByUser, insertMessageReceipts, markDeliveredForUsers } from '../api/message-receipts';
+import { WS, WSChatEvent, WSUnreadSnapshotEvent } from '../ws/ws-server-types.js';
+import { getMetaBySocket, getSocketsByChannel } from '../ws/connectionStore.js';
+import { InsertMessageArgs, getUserIdsByChannel, insertMessage } from '../api/chat.js';
+import { broadcastToChannel, sendToUser } from '../utils/broadcast.js';
+import { WSChatRequest } from '../ws/ws-client-types.js';
+import { getReceiptSnapshot, getUnreadCountsByUser, insertMessageReceipts, markDeliveredForUsers } from '../api/message-receipts.js';
 
 const chatHandler = async (ws: WS, msg: WSChatRequest) => {
   const meta = getMetaBySocket(ws);

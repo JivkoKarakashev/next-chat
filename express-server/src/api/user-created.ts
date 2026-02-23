@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 
-import { broadcastAll } from '../utils/broadcast';
-import { WSUserCreatedEvent } from '../ws/ws-server-types';
+import { broadcastAll } from '../utils/broadcast.js';
+import { WSUserCreatedEvent } from '../ws/ws-server-types.js';
 
 const userCreatedHandler = (req: Request, res: Response) => {
   const { id, username } = req.body;

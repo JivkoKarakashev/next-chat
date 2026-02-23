@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 
-import { getAllChannels } from './chat';
+import { getAllChannels } from './chat.js';
 
 const channelsHandler = async (_: Request, res: Response) => {
     const allChannels = await getAllChannels();

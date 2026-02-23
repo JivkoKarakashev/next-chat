@@ -1,5 +1,5 @@
-import { pool } from "../lib/db";
-import { DBUserRow } from "../ws/ws-server-types";
+import { pool } from "../lib/db.js";
+import { DBUserRow } from "../ws/ws-server-types.js";
 
 const getAllUsers = async (): Promise<DBUserRow[]> => {
   const { rows } = await pool.query<DBUserRow>(`

@@ -2,11 +2,11 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.sendToUser = exports.broadcastAll = exports.sendChatHistoryToClient = exports.broadcastToChannel = void 0;
 const ws_1 = require("ws");
-const app_1 = require("../app");
-const connectionStore_1 = require("../ws/connectionStore");
+const app_js_1 = require("../app.js");
+const connectionStore_js_1 = require("../ws/connectionStore.js");
 // --- Broadcast helpers ---
 const broadcastToChannel = (channelId, msg) => {
-    const clients = (0, connectionStore_1.getSocketsByChannel)(channelId);
+    const clients = (0, connectionStore_js_1.getSocketsByChannel)(channelId);
     const data = JSON.stringify(msg);
     clients.forEach((client) => {
         if (client.readyState === ws_1.WebSocket.OPEN) {
@@ -21,7 +21,7 @@ const sendChatHistoryToClient = (ws, history) => {
 exports.sendChatHistoryToClient = sendChatHistoryToClient;
 const broadcastAll = (msg) => {
     const data = JSON.stringify(msg);
-    app_1.wss.clients.forEach((client) => {
+    app_js_1.wss.clients.forEach((client) => {
         if (client.readyState === client.OPEN) {
             client.send(data);
         }
@@ -29,7 +29,7 @@ const broadcastAll = (msg) => {
 };
 exports.broadcastAll = broadcastAll;
 const sendToUser = (userId, event) => {
-    const sockets = (0, connectionStore_1.getSocketsByUserId)(userId);
+    const sockets = (0, connectionStore_js_1.getSocketsByUserId)(userId);
     if (!sockets) {
         console.log('User sockets SET is undefined!');
         return;

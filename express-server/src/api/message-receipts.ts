@@ -1,5 +1,5 @@
-import { pool } from '../lib/db';
-import { WSReceiptSnapshot } from '../ws/ws-server-types';
+import { pool } from '../lib/db.js';
+import { WSReceiptSnapshot } from '../ws/ws-server-types.js';
 
 const insertMessageReceipts = async (messageInternalId: number, channelId: string): Promise<void> => {
   await pool.query(`

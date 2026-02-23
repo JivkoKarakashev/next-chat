@@ -1,10 +1,10 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getUserIdsByChannel = exports.addUserToChannel = exports.insertMessage = exports.getChatHistoryByChannel = exports.getOrCreateChannelByName = exports.getAllChannels = void 0;
-const db_1 = require("../lib/db");
-const secure_random_string_1 = require("../utils/secure-random-string");
+const db_js_1 = require("../lib/db.js");
+const secure_random_string_js_1 = require("../utils/secure-random-string.js");
 const getAllChannels = async () => {
-    const { rows } = await db_1.pool.query(`
+    const { rows } = await db_js_1.pool.query(`
         SELECT id AS "channelId", name AS "channelName"
         FROM channels
         ORDER BY name ASC
@@ -14,7 +14,7 @@ const getAllChannels = async () => {
 exports.getAllChannels = getAllChannels;
 // Get or create a channel by name
 const getOrCreateChannelByName = async (name) => {
-    const { rows: existing } = await db_1.pool.query(`
+    const { rows: existing } = await db_js_1.pool.query(`
         SELECT id AS "channelId" , name AS "channelName"
         FROM channels
         WHERE name = $1
@@ -25,8 +25,8 @@ const getOrCreateChannelByName = async (name) => {
             created: false
         };
     }
-    const id = (0, secure_random_string_1.generateSecureRandomId)();
-    const { rows: createdRows } = await db_1.pool.query(`
+    const id = (0, secure_random_string_js_1.generateSecureRandomId)();
+    const { rows: createdRows } = await db_js_1.pool.query(`
         INSERT INTO channels (id, name)
         VALUES ($1, $2)
         RETURNING id AS "channelId", name AS "channelName"
@@ -40,7 +40,7 @@ exports.getOrCreateChannelByName = getOrCreateChannelByName;
 // Get last messages for a channel (including email)
 const getChatHistoryByChannel = async (channelId) => {
     // console.log('ChannelID:' + channelId);
-    const { rows } = await db_1.pool.query(`
+    const { rows } = await db_js_1.pool.query(`
         SELECT
           m.internal_id AS "internalId",
           m.public_id AS "publicId",
@@ -94,9 +94,9 @@ const getChatHistoryByChannel = async (channelId) => {
 exports.getChatHistoryByChannel = getChatHistoryByChannel;
 // Save a message in DB
 const insertMessage = async (args) => {
-    const publicId = (0, secure_random_string_1.generateSecureRandomId)();
+    const publicId = (0, secure_random_string_js_1.generateSecureRandomId)();
     const { type, userId, channelId, content } = args;
-    const { rows } = await db_1.pool.query(`
+    const { rows } = await db_js_1.pool.query(`
         INSERT INTO messages (type, public_id, user_id, channel_id, content)
         VALUES ($1, $2, $3, $4, $5)
         RETURNING
@@ -113,7 +113,7 @@ const insertMessage = async (args) => {
         console.log('An error occurred while inserting a new message in the database!');
         return;
     }
-    const { rows: userRows } = await db_1.pool.query(`
+    const { rows: userRows } = await db_js_1.pool.query(`
         SELECT username FROM users WHERE id = $1
     `, [userId]);
     return {
@@ -123,7 +123,7 @@ const insertMessage = async (args) => {
 };
 exports.insertMessage = insertMessage;
 const addUserToChannel = async (channelId, userId) => {
-    await db_1.pool.query(`
+    await db_js_1.pool.query(`
       INSERT INTO channel_users (channel_id, user_id)
       VALUES ($1, $2)
       ON CONFLICT (channel_id, user_id) DO NOTHING
@@ -131,7 +131,7 @@ const addUserToChannel = async (channelId, userId) => {
 };
 exports.addUserToChannel = addUserToChannel;
 const getUserIdsByChannel = async (channelId) => {
-    const { rows } = await db_1.pool.query(`
+    const { rows } = await db_js_1.pool.query(`
     SELECT user_id AS "userId" FROM channel_users
     WHERE channel_id = $1
   `, [channelId]);

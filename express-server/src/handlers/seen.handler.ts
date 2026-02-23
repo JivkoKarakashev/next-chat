@@ -1,9 +1,9 @@
-import { WS, WSSeenUpdateEvent, WSUnreadSnapshotEvent } from '../ws/ws-server-types';
-import { WSSeenRequest } from '../ws/ws-client-types';
+import { WS, WSSeenUpdateEvent, WSUnreadSnapshotEvent } from '../ws/ws-server-types.js';
+import { WSSeenRequest } from '../ws/ws-client-types.js';
 
-import { getUnreadCountsByUser, markSeenUpToMessage } from '../api/message-receipts';
-import { broadcastToChannel, sendToUser } from '../utils/broadcast';
-import { getMetaBySocket } from '../ws/connectionStore';
+import { getUnreadCountsByUser, markSeenUpToMessage } from '../api/message-receipts.js';
+import { broadcastToChannel, sendToUser } from '../utils/broadcast.js';
+import { getMetaBySocket } from '../ws/connectionStore.js';
 
 const seenHandler = async (ws: WS, msg: WSSeenRequest) => {
   const meta = getMetaBySocket(ws);

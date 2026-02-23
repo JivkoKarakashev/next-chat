@@ -1,7 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.userCreatedHandler = void 0;
-const broadcast_1 = require("../utils/broadcast");
+const broadcast_js_1 = require("../utils/broadcast.js");
 const userCreatedHandler = (req, res) => {
     const { id, username } = req.body;
     if (!id || !username) {
@@ -14,7 +14,7 @@ const userCreatedHandler = (req, res) => {
             username
         }
     };
-    (0, broadcast_1.broadcastAll)(event);
+    (0, broadcast_js_1.broadcastAll)(event);
     return res.sendStatus(204);
 };
 exports.userCreatedHandler = userCreatedHandler;
