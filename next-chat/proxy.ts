@@ -1,14 +1,10 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-const wsSrc =
-  process.env.NODE_ENV === 'development'
-    ? "ws://localhost:3030 http://localhost:3030"
-    : "https://socket-next.onrender.com wss://socket-next.onrender.com";
-
+const wsSrc = process.env.NEXT_PUBLIC_WS_URL;
 const csp = `
   default-src 'self';
-  connect-src 'self' ${wsSrc};
+  connect-src 'self' ${wsSrc} https://socket-next.onrender.com;
   script-src 'self' 'unsafe-inline' 'unsafe-eval';
   style-src 'self' 'unsafe-inline';
   img-src 'self' data: https://img.daisyui.com;
