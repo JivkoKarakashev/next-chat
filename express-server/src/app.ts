@@ -161,11 +161,9 @@ app.get('/internal/channels', requireXInternalSecret, channelsHandler);
 app.get('/internal/users', requireXInternalSecret, usersHandler);
 app.post('/internal/user-created', requireXInternalSecret, userCreatedHandler);
 
-if (config.env === 'development') {
-  server.listen(config.port, () => {
-    console.log(`HTTP + WS server listening on port ${config.port}`);
-  });
-}
+server.listen(config.port || process.env.LISTENING_PORT || 3030, () => {
+  console.log(`HTTP + WS server listening on port ${config.port} [env: ${config.env}]`);
+});
 
 export {
   app,

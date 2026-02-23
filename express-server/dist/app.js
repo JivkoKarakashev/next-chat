@@ -182,8 +182,6 @@ app.get('/internal/health', (_req, res) => res.json({ ok: true, environment: con
 app.get('/internal/channels', internal_secret_js_1.requireXInternalSecret, channels_handler_js_1.channelsHandler);
 app.get('/internal/users', internal_secret_js_1.requireXInternalSecret, users_handler_js_1.usersHandler);
 app.post('/internal/user-created', internal_secret_js_1.requireXInternalSecret, user_created_js_1.userCreatedHandler);
-if (config_js_1.default.env === 'development') {
-    server.listen(config_js_1.default.port, () => {
-        console.log(`HTTP + WS server listening on port ${config_js_1.default.port}`);
-    });
-}
+server.listen(config_js_1.default.port || process.env.LISTENING_PORT || 3030, () => {
+    console.log(`HTTP + WS server listening on port ${config_js_1.default.port} [env: ${config_js_1.default.env}]`);
+});
