@@ -39,7 +39,7 @@ const ChatPage = (): React.ReactElement => {
       })
       .then(allUsersSetter)
       .catch(console.error);
-  }, []);
+  }, [allUsersSetter]);
 
   useEffect(() => {
     lastSeenRef.current = null;
