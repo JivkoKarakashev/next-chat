@@ -6,15 +6,7 @@ declare global {
 }
 
 const pool: Pool = global.pgPool ?? new Pool({
-  connectionString: process.env.POSTGRES_URL,
-  ...(process.env.NODE_ENV !== 'production' && {
-    user: process.env.POSTGRES_USER,
-    host: process.env.POSTGRES_HOST,
-    database: process.env.POSTGRES_DATABASE,
-    password: process.env.POSTGRES_PASSWORD,
-    port: 5432,
-  }),
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: true } : undefined
+  connectionString: process.env.POSTGRES_URL
 });
 
 if (process.env.NODE_ENV !== 'production') {
