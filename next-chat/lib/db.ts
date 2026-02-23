@@ -14,7 +14,7 @@ const pool: Pool = global.pgPool ?? new Pool({
     password: process.env.POSTGRES_PASSWORD,
     port: 5432,
   }),
-  ssl: { rejectUnauthorized: false }
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: true } : undefined
 });
 
 if (process.env.NODE_ENV !== 'production') {
