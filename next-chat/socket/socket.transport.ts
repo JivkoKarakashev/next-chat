@@ -30,13 +30,14 @@ function createSocketTransport(): SocketTransport {
     ws = createWebSocket();
 
     ws.onopen = () => {
+      console.log("Connected!");
       openHandler?.();
     };
 
     ws.onmessage = (event) => {
       try {
         const parsed = JSON.parse(event.data) as WSServerEvent;
-        // console.log("TRANSPORT RECEIVED:", parsed);
+        console.log("TRANSPORT RECEIVED:", parsed);
         messageHandler?.(parsed);
       } catch (err) {
         console.error("WS parse error:", err);
@@ -48,7 +49,8 @@ function createSocketTransport(): SocketTransport {
       ws = null;
     };
 
-    ws.onerror = () => {
+    ws.onerror = (e) => {
+      console.error("Error", e);
       errorHandler?.();
     };
   }
