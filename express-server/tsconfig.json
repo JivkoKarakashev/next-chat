@@ -33,7 +33,7 @@
     "skipLibCheck": true,
     "baseUrl": ".",
   },
-  "include": ["src/**/*.ts", "src/types/**/*.d.ts"],
+  "include": ["src/**/*.ts", "src/ws/**/*.d.ts"],
   "exclude": [
     "node_modules"
   ]

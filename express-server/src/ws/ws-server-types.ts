@@ -8,6 +8,10 @@ import { ActiveChannelsSnapshot } from "./connectionStore";
 // ============================
 
 type WS = WebSocket;
+interface ExtendedWS extends WebSocket {
+  session?: string;
+}
+
 type EventType = | 'join' | 'leave' | 'online' | 'offline';
 
 //START OF DB ROW TYPES (Not WebSocket Types)
@@ -170,6 +174,7 @@ type DBMessageWithReceipts = {
 
 export {
   type WS,
+  type ExtendedWS,
   type EventType,
   type DBChannelRow,
   type DBMessageRow,

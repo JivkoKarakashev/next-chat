@@ -1,37 +1,4 @@
 "use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || (function () {
-    var ownKeys = function(o) {
-        ownKeys = Object.getOwnPropertyNames || function (o) {
-            var ar = [];
-            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
-            return ar;
-        };
-        return ownKeys(o);
-    };
-    return function (mod) {
-        if (mod && mod.__esModule) return mod;
-        var result = {};
-        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
-        __setModuleDefault(result, mod);
-        return result;
-    };
-})();
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -41,7 +8,6 @@ const node_http_1 = __importDefault(require("node:http"));
 const express_1 = __importDefault(require("express"));
 const cors_1 = __importDefault(require("cors"));
 const ws_1 = require("ws");
-const cookies = __importStar(require("cookie"));
 const config_1 = __importDefault(require("./config"));
 const connectionStore_1 = require("./ws/connectionStore");
 const presence_1 = require("./utils/presence");
@@ -66,10 +32,11 @@ server.on('upgrade', (request, _socket, _head) => {
 });
 wss.on('connection', async (ws, req) => {
     console.log('New WebSocket connection!');
+    // Parse session token from query
+    const url = new URL(req.url, `http://${req.headers.host}`);
+    const sessionId = url.searchParams.get('session');
     let session;
     try {
-        const cookie = cookies.parse(req.headers.cookie ?? "");
-        const sessionId = cookie.session;
         if (!sessionId) {
             return ws.close(1008, 'No session!');
         }
@@ -77,6 +44,7 @@ wss.on('connection', async (ws, req) => {
         if (!session) {
             return ws.close(1008, 'Invalid session!');
         }
+        // ws.session = sessionId;
         const bacameOnline = (0, connectionStore_1.addUserSocket)(session.userId, ws);
         if (bacameOnline) {
             const usrPresenceMsg = {

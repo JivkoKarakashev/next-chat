@@ -2,10 +2,9 @@ import http from "node:http";
 import express from "express";
 import cors from "cors";
 import { WebSocketServer } from "ws";
-import * as cookies from "cookie";
 
 import config from "./config";
-import { WSActiveChannelsSnapshot, WSAuthEvent, WSChannelsSnapshotEvent, WSOnlineUserSnapshot, WSPresenceEvent, WSUnreadSnapshotEvent, WSUserActiveChannel, WSUserPresenceEvent } from "./ws/ws-server-types";
+import { WS, WSActiveChannelsSnapshot, WSAuthEvent, WSChannelsSnapshotEvent, WSOnlineUserSnapshot, WSPresenceEvent, WSUnreadSnapshotEvent, WSUserActiveChannel, WSUserPresenceEvent } from "./ws/ws-server-types";
 import { WSClientEvent } from "./ws/ws-client-types";
 import { addUserSocket, getActiveChannelsSnapshot, getOnlineUserIds, removeChannelSocket, removeUserSocket } from "./ws/connectionStore";
 import { emitPresence } from "./utils/presence";
@@ -30,13 +29,14 @@ server.on('upgrade', (request, _socket, _head) => {
   console.log('Upgrade request for:', request.url);
 });
 
-wss.on('connection', async (ws, req) => {
+wss.on('connection', async (ws: WS, req) => {
   console.log('New WebSocket connection!');
+  // Parse session token from query
+  const url = new URL(req.url!, `http://${req.headers.host}`);
+  const sessionId = url.searchParams.get('session');
   let session: Session | undefined;
 
   try {
-    const cookie = cookies.parse(req.headers.cookie ?? "");
-    const sessionId = cookie.session;
     if (!sessionId) {
       return ws.close(1008, 'No session!');
     }
@@ -45,6 +45,7 @@ wss.on('connection', async (ws, req) => {
     if (!session) {
       return ws.close(1008, 'Invalid session!');
     }
+    // ws.session = sessionId;
 
     const bacameOnline = addUserSocket(session.userId, ws);
     if (bacameOnline) {

@@ -45,7 +45,7 @@ const SocketStateContext = createContext<SocketStateInterface>({
 function SocketStateContextProvider({ children }: { children: React.ReactNode }): React.ReactElement {
 
   const transportRef = useRef<SocketTransport | null>(null);
-  const { isAuth } = useContext(AuthStateContext);
+  const { isAuth, sId } = useContext(AuthStateContext);
 
   // CONNECTION STATE
   const [connected, setConnected] = useState(false);
@@ -124,12 +124,12 @@ function SocketStateContextProvider({ children }: { children: React.ReactNode })
 
   // SOCKET LIFECYCLE
   useEffect(() => {
-    if (!isAuth) {
+    if (!isAuth || !sId) {
       transportRef.current?.disconnect();
       return;
     }
 
-    const transport = createSocketTransport();
+    const transport = createSocketTransport(sId);
     transportRef.current = transport;
 
     registerAllHandlers();
@@ -160,7 +160,7 @@ function SocketStateContextProvider({ children }: { children: React.ReactNode })
     return () => {
       transport.disconnect();
     };
-  }, [isAuth, reset]);
+  }, [isAuth, sId, reset]);
 
   // CONTEXT VALUE
   const value = useMemo<SocketStateInterface>(() => ({

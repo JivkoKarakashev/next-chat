@@ -14,7 +14,7 @@ interface SocketTransport {
   isConnected: () => boolean
 }
 
-function createSocketTransport(): SocketTransport {
+function createSocketTransport(sessionId: string): SocketTransport {
   let ws: WebSocket | null = null;
 
   let openHandler: (() => void) | null = null;
@@ -27,17 +27,17 @@ function createSocketTransport(): SocketTransport {
       return;
     }
 
-    ws = createWebSocket();
+    ws = createWebSocket(sessionId);
 
     ws.onopen = () => {
-      console.log("Connected!");
+      // console.log('Connected.');
       openHandler?.();
     };
 
     ws.onmessage = (event) => {
       try {
         const parsed = JSON.parse(event.data) as WSServerEvent;
-        console.log("TRANSPORT RECEIVED:", parsed);
+        // console.log('TRANSPORT RECEIVED: ', parsed);
         messageHandler?.(parsed);
       } catch (err) {
         console.error("WS parse error:", err);
@@ -50,7 +50,7 @@ function createSocketTransport(): SocketTransport {
     };
 
     ws.onerror = (e) => {
-      console.error("Error", e);
+      console.error('Error', e);
       errorHandler?.();
     };
   }
