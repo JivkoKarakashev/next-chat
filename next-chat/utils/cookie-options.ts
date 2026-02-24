@@ -5,7 +5,7 @@ const createSessionCookieOptions = (expires: Date): Partial<ResponseCookie> => {
   return {
     httpOnly: true,
     secure: isProdEnv,
-    sameSite: isProdEnv ? 'none' : 'lax',
+    sameSite: 'none',
     path: '/',
     expires
   };
