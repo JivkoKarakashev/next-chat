@@ -1,7 +1,11 @@
-const createSessionCookieOptions = (expires: Date) => {
+import { ResponseCookie } from "next/dist/compiled/@edge-runtime/cookies";
+
+const createSessionCookieOptions = (expires: Date): Partial<ResponseCookie> => {
+  const isProdEnv = process.env.NODE_ENV === 'production';
   return {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
+    secure: isProdEnv,
+    sameSite: isProdEnv ? 'none' : 'lax',
     path: '/',
     expires
   };
