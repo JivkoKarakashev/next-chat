@@ -4,7 +4,7 @@
 A modern, full-stack real-time chat application built with TypeScript, WebSockets, and Next.js, featuring channel-based messaging, delivery/read receipts, user presence, and live user synchronization.
 
 ## Live Version
-You can try the deployed version [HERE](https://socket-next-orcin.vercel.app/)
+You can try the deployed version [HERE](https://socket-next.jivkokarakashev.dev/)
 
 ## Table of Contents
 
@@ -57,9 +57,10 @@ You can try the deployed version [HERE](https://socket-next-orcin.vercel.app/)
 
 ### Architecture Overview
 - Backend (Express.js + WebSockets)
+- Database: Supabase PostgreSQL
 - Express.js for REST & internal endpoints
 - Native WebSocket server for real-time communication
-- Stateless message routing with explicit handlers:
+- Stateless message routing with explicit handlers
 - **Centralized in-memory connection store:**
     - Active sockets
     - User presence
@@ -82,13 +83,23 @@ You can try the deployed version [HERE](https://socket-next-orcin.vercel.app/)
     - Designed for extensibility and indexing
 
 ### Data Flow (High Level)
-- User authenticates via Next.js
-- WebSocket connection is established using session cookie
+- **Database:** Supabase PostgreSQL (managed)
+
+- **Backend (Express + WebSocket on Render):** 
+    - Connects via pooled PostgreSQL connection
+    - Manages:
+        - User authentication
+        - Sessions
+        - Chat channels
+        - Messages
+
+- User authenticates via Next.js (Vercel)
+- WebSocket connection is established using the session ID (query parameter)
 - Server sends initial snapshots:
-- Users
-- Channels
-- Presence
-- Unread counts
+    - Users
+    - Channels
+    - Presence
+    - Unread counts
 - Incremental real-time events keep all clients in sync
 - State resets cleanly on disconnect / logout
 
@@ -118,7 +129,7 @@ You can try the deployed version [HERE](https://socket-next-orcin.vercel.app/)
 ## Deployment
 - Backend & WebSocket server: [Render](https://render.com/)
 - Frontend: [Vercel](https://vercel.com/)
-- Database: Managed PostgreSQL [Render](https://render.com/)
+- Database: Managed PostgreSQL [Supabase](https://supabase.com/)
 
 ## Scalability & Future Improvements
 - **This project is intentionally structured for growth:**
