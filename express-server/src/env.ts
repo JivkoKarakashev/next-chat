@@ -19,7 +19,8 @@ const env = {
     NODE_ENV: process.env.NODE_ENV ?? 'development',
     LISTENING_PORT: parseInt(process.env.LISTENING_PORT || '3030'),
     POSTGRES_URL: process.env.POSTGRES_URL,
-    X_INTERNAL_SECRET: process.env.X_INTERNAL_SECRET
+    X_INTERNAL_SECRET: process.env.X_INTERNAL_SECRET,
+    HEARTBEAT_INTERVAL: parseInt(process.env.HEARTBEAT_INTERVAL || '30000')
 };
 
 export {

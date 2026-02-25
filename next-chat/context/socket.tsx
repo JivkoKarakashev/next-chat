@@ -24,7 +24,8 @@ interface SocketStateInterface {
   memoizedMessagesByChannel: UIMessage[],
   joinChannel: (channelName: string) => void,
   sendChat: (content: string) => void,
-  reset: () => void
+  reset: () => void,
+  disconnect: () => void
 }
 
 const SocketStateContext = createContext<SocketStateInterface>({
@@ -39,7 +40,8 @@ const SocketStateContext = createContext<SocketStateInterface>({
   memoizedMessagesByChannel: [],
   joinChannel: () => { },
   sendChat: () => { },
-  reset: () => { }
+  reset: () => { },
+  disconnect: () => { }
 });
 
 function SocketStateContextProvider({ children }: { children: React.ReactNode }): React.ReactElement {
@@ -82,10 +84,21 @@ function SocketStateContextProvider({ children }: { children: React.ReactNode })
     // console.log('RESET SOCKET INVOKED!');
     setConnected(false);
     setIsReady(false);
+    setAllUsers([]);
+    setOnlineUsers([]);
+    setUsersActiveChannel({});
     setChannels([]);
     setActiveChannelId(null);
     setMessagesByChannel({});
+    setUnreadByChannel({});
   }, []);
+
+  // DISCONNECT
+  const disconnect = useCallback(() => {
+    transportRef.current?.disconnect();
+    transportRef.current = null;
+    reset();
+  }, [reset]);
 
   // JOIN CHANNEL
   const joinChannel = useCallback((channelName: string) => {
@@ -175,8 +188,9 @@ function SocketStateContextProvider({ children }: { children: React.ReactNode })
     memoizedMessagesByChannel,
     joinChannel,
     sendChat,
-    reset
-  }), [connected, allUsers, allUsersSetter, onlineUsers, usersActiveChannel, channels, unreadByChannel, activeChannelId, memoizedMessagesByChannel, joinChannel, sendChat, reset]);
+    reset,
+    disconnect
+  }), [connected, allUsers, allUsersSetter, onlineUsers, usersActiveChannel, channels, unreadByChannel, activeChannelId, memoizedMessagesByChannel, joinChannel, sendChat, reset, disconnect]);
 
   return (
     <SocketStateContext.Provider value={value}>

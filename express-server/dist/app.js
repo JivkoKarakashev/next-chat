@@ -9,6 +9,7 @@ const express_1 = __importDefault(require("express"));
 const cors_1 = __importDefault(require("cors"));
 const ws_1 = require("ws");
 const config_1 = __importDefault(require("./config"));
+const env_1 = require("./env");
 const connectionStore_1 = require("./ws/connectionStore");
 const presence_1 = require("./utils/presence");
 const validateSession_1 = require("./utils/validateSession");
@@ -20,15 +21,15 @@ const user_created_1 = require("./api/user-created");
 const internal_secret_1 = require("./middleware/internal-secret");
 const users_handler_1 = require("./api/users-handler");
 const channels_handler_1 = require("./api/channels-handler");
-// --- Express + WebSocket setup ---
+/* --- Express + WebSocket setup --- */
 const app = (0, express_1.default)();
 exports.app = app;
 app.use((0, cors_1.default)());
 const server = node_http_1.default.createServer(app);
 const wss = new ws_1.WebSocketServer({ server, path: '/ws' });
 exports.wss = wss;
-server.on('upgrade', (request, _socket, _head) => {
-    console.log('Upgrade request for:', request.url);
+server.on('upgrade', (_request, _socket, _head) => {
+    // console.log('Upgrade request for:', request.url);
 });
 wss.on('connection', async (ws, req) => {
     console.log('New WebSocket connection!');
@@ -36,6 +37,11 @@ wss.on('connection', async (ws, req) => {
     const url = new URL(req.url, `http://${req.headers.host}`);
     const sessionId = url.searchParams.get('session');
     let session;
+    /* --- HEARTBEAT STATE --- */
+    let isAlive = true;
+    ws.on('pong', () => {
+        isAlive = true;
+    });
     try {
         if (!sessionId) {
             return ws.close(1008, 'No session!');
@@ -44,7 +50,7 @@ wss.on('connection', async (ws, req) => {
         if (!session) {
             return ws.close(1008, 'Invalid session!');
         }
-        // ws.session = sessionId;
+        // console.log(session);
         const bacameOnline = (0, connectionStore_1.addUserSocket)(session.userId, ws);
         if (bacameOnline) {
             const usrPresenceMsg = {
@@ -54,35 +60,35 @@ wss.on('connection', async (ws, req) => {
             };
             (0, broadcast_1.broadcastAll)(usrPresenceMsg);
         }
-        console.log('User is ready.');
-        console.log('Sent auth confirmation to client.');
-        // AUTH CONFIRMATION
+        // console.log('User is ready.');
+        // console.log('Sent auth confirmation to client.');
+        /* --- AUTH CONFIRMATION --- */
         const authMsg = {
             type: 'auth',
             content: 'success'
         };
         ws.send(JSON.stringify(authMsg));
-        //  ONLINE USERS SNAPSHOT
+        /* --- ONLINE USERS SNAPSHOT --- */
         const onlineUsrSnapshotMsg = {
             type: 'online_snapshot',
             users: (0, connectionStore_1.getOnlineUserIds)()
         };
         ws.send(JSON.stringify(onlineUsrSnapshotMsg));
-        // UNREAD SNAPSHOT
+        /* --- UNREAD SNAPSHOT --- */
         const unread = await (0, message_receipts_1.getUnreadCountsByUser)(session.userId);
         const unreadSnapshotMsg = {
             type: 'unread_snapshot',
             unread
         };
         ws.send(JSON.stringify(unreadSnapshotMsg));
-        // SEND CHANNELS SNAPSHOT
+        /* --- CHANNELS SNAPSHOT --- */
         const channels = await (0, chat_1.getAllChannels)();
         const chSnapshotMsg = {
             type: 'channels_snapshot',
             channels
         };
         ws.send(JSON.stringify(chSnapshotMsg));
-        // SEND ACTIVE CHANNELS SNAPSHOT
+        /* --- ACTIVE CHANNELS SNAPSHOT --- */
         const data = (0, connectionStore_1.getActiveChannelsSnapshot)();
         const activeChSnapshotMsg = {
             type: 'active_channel_snapshot',
@@ -94,7 +100,30 @@ wss.on('connection', async (ws, req) => {
         console.error('Connection error:', err);
         ws.close(1011); // Internal Error
     }
-    // console.log(session);
+    /* --- HEARTBEAT INTERVAL (Ping/Pong) --- */
+    const heartbeatInterval = setInterval(() => {
+        if (ws.readyState !== ws.OPEN) {
+            return;
+        }
+        if (!isAlive) {
+            console.log('Terminating stale connection!');
+            return ws.terminate();
+        }
+        isAlive = false;
+        ws.ping();
+    }, env_1.env.HEARTBEAT_INTERVAL);
+    /* --- SESSION VALIDATION INTERVAL --- */
+    const sessionValidationInterval = setInterval(async () => {
+        if (ws.readyState !== ws.OPEN) {
+            return;
+        }
+        const valid = await (0, validateSession_1.validateSession)(sessionId);
+        if (!valid) {
+            console.log('Session expired — closing socket!');
+            ws.close(1008, 'Session expired!');
+        }
+    }, env_1.env.HEARTBEAT_INTERVAL);
+    /* --- MESSAGE HANDLER --- */
     ws.on('message', async (data) => {
         if (!session) {
             console.log('Message ignored: User not authenticated yet!');
@@ -112,7 +141,10 @@ wss.on('connection', async (ws, req) => {
         }
         await (0, router_1.messageRouter)(ws, msg, session);
     });
+    /* --- CLOSE HANDLER --- */
     ws.on('close', () => {
+        clearInterval(heartbeatInterval);
+        clearInterval(sessionValidationInterval);
         if (!session) {
             return ws.close(1008, 'Invalid session!');
         }
@@ -143,6 +175,9 @@ wss.on('connection', async (ws, req) => {
             };
             (0, broadcast_1.broadcastAll)(usrPresenceMsg);
         }
+    });
+    ws.on('error', (err) => {
+        console.error('WebSocket error: ', err);
     });
 });
 app.use(express_1.default.json());
